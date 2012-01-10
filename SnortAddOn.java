@@ -181,6 +181,7 @@ if(snort_conf.exists()){
     }catch(Exception e){
         System.out.print("Exception!");
     }
+    //System.out.print("alert file exist");
 
 }
 }
@@ -223,6 +224,7 @@ if(alertF.exists()){
     forRegEx = line.split("[**] \\[");
     if(forRegEx[0].contains(" [**]")){
     forRegEx = forRegEx[0].split(":");
+    //if(forRegEx[1].matches("[0-9]+")){
     sid = forRegEx[1];
     for(int i=0; i<files.size();i++){
     for(int j=0; j<files.get(i).rules.size();j++){
@@ -232,9 +234,11 @@ if(alertF.exists()){
     }
     }
     }
+    //}
     }
     }
     else if(listed){
+    //if(true){
     if(line.contains(" -> ")){
     forRegEx = line.split(" -> ");
     forRegEx = forRegEx[1].split(":");
