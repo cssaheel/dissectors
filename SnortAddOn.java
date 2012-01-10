@@ -1,14 +1,10 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package snort.add.on;
 
 import java.io.*;
 import java.util.*;
 /**
  *
- * @author redn0se
+ * @author Abdulellah Alsaheel
  */
 
 class ip{
@@ -120,14 +116,9 @@ if(file.exists() && file.isFile()){
     forRegEx = forRegEx[0].split(";");
     else if(line.contains("sid:") && forRegEx.length>1)
             forRegEx = forRegEx[1].split(";");
-    //if(forRegEx[0].matches("[0-9]+"))
-    
+
     files.get(index).rules.add(new rule(forRegEx[0],line,file.getAbsolutePath()));
-    //else{
-    //forRegEx = forRegEx[0].split("[^0-9]+");
-    //if(forRegEx[0].matches("[0-9]+"))
-    //rules.add(forRegEx[0]);
-    //}
+
     }
     }
         }
@@ -139,7 +130,6 @@ if(file.exists() && file.isFile()){
     }catch(Exception e){
     System.out.print("Exception");
     }
-    //System.out.print("alert file exist");
 
 }
 }
@@ -279,30 +269,15 @@ if(alertF.exists()){
     lastPriority = forRegEx[0];
     }
     }
-    /*
-     if(line.contains(" ID:")){
-    forRegEx = line.split(" ID:");
-    if(forRegEx[1].contains(" ")){
-    forRegEx = forRegEx[1].split(" ");
-    lastID = forRegEx[0];
-    if(new Integer(ID).intValue() == 0){
-    ID = lastID;
-    changed = true;
-    } else if(new Integer(lastID).intValue() > new Integer(ID).intValue() && new Integer(lastID).intValue() <= new Integer(ID).intValue() + 4){
-    ID = lastID;
-    changed = true;
-    }
-    }
-    }
-    */
+
     if(line.contains("Len:"))
     alertCompleted = true;
     
     if(listed && changed && alertCompleted && new Integer(lastPriority).intValue() <= new Integer(priority).intValue()){
         if(lastSrc != honeypot && lastDst != honeypot)
         if(notFound(lastSrc,lastDst)){
-        //process = runtime.exec("iptables -t nat -A PREROUTING -p all -i " + conInf + " -s " + lastSrc + " -d " + lastDst + " -j DNAT --to-destination " + honeypot);
-        //process = runtime.exec("iptables -t nat -A POSTROUTING -p all -o " + conInf + " -s " + honeypot + " -d " + lastSrc + " -j SNAT --to-source " + lastDst);
+        process = runtime.exec("iptables -t nat -A PREROUTING -p all -i " + conInf + " -s " + lastSrc + " -d " + lastDst + " -j DNAT --to-destination " + honeypot);
+        process = runtime.exec("iptables -t nat -A POSTROUTING -p all -o " + conInf + " -s " + honeypot + " -d " + lastSrc + " -j SNAT --to-source " + lastDst);
         ips.add(new ip(lastSrc,lastDst));
         System.out.println("i did it!!");
     changed = false;
