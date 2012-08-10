@@ -63,7 +63,15 @@ class Dissector(Packet):
     """
     packet = None
     type = 0
-    gn = 0
+    preprocess_sessions = []
+    sessions = []
+    
+    def recalculate_seq(self):
+        i = 0
+        while i < len(dissector.Dissector.sessions):
+            Dissector.sessions[i][4].seq = Dissector.sessions[i][4].seq - Dissector.sessions[i][4].length_of_last_packet
+            i = i + 1
+
     def get_ascii(self, hexstr):
         """
         get hex string and returns ascii chars
@@ -136,6 +144,36 @@ class Dissector(Packet):
             return v
         # raise AttributeError(attr)
         
+    def seq_analysis(self, pcapfile):
+        """
+        this method act as an interface for the dissect() method.
+        and to represents the data in the required format.
+        @param pcapfile: path to a pcap/cap library
+        """
+        packetslist = rdpcap(pcapfile)
+        pktsfields = []
+        protocols = []
+        entry = {}
+        recognized = False
+        for pkt in packetslist:
+            firstlayer = True
+            if pkt:
+                # pktsfields.append("NewPacket")
+                if firstlayer:
+                    firstlayer = False
+                    self.packet = pkt
+                    fields = self.dissect(self.packet)
+
+                load = pkt
+                while load.payload:
+                    load = load.payload
+                    self.packet = load
+                    
+                    fields = self.dissect(self.packet)
+
+                    if fields[0]:
+                        if fields[0] == "NoPayload":
+                            break
 
 
     def dissect_pkts(self, pcapfile):
@@ -144,6 +182,10 @@ class Dissector(Packet):
         and to represents the data in the required format.
         @param pcapfile: path to a pcap/cap library
         """
+        self.seq_analysis(pcapfile)
+        Dissector.sessions = Dissector.preprocess_sessions
+        self.recalculate_seq()
+        Dissector.preprocess_sessions = []
         packetslist = rdpcap(pcapfile)
         pktsfields = []
         protocols = []

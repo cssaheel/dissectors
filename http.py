@@ -39,8 +39,6 @@ from scapy.ansmachine import *
 from scapy.layers.inet import *
 import dissector
 
-sessions = []
-
 
 def is_created_session(Src, Dst, SPort, DPort):
     """
@@ -51,72 +49,65 @@ def is_created_session(Src, Dst, SPort, DPort):
     @param DPort: destination port number
     """
     i = 0
-    while i < len(sessions):
-        if  Src and Dst and SPort and DPort in sessions[i]:
+    while i < len(dissector.Dissector.preprocess_sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.preprocess_sessions[i]:
             return True
         i = i + 1
     return False
 
 def create_session(Src, Dst, SPort, DPort, expected_seq):
-    """
-    method for creating encypted ssh sessions
-    @param Src: source ip address
-    @param Dst: destination ip address
-    @param SPort: source port number
-    @param DPort: destination port number
-    """
     if not is_created_session(Src, Dst, SPort, DPort):
-        sessions.append([Src, Dst, SPort, DPort, expected_seq])
+        dissector.Dissector.preprocess_sessions.append([Src, Dst, SPort, DPort, expected_seq])
         
-def build_stream(Src, Dst, SPort, DPort, expected_seq):
+def build_stream(Src, Dst, SPort, DPort, stream):
     i = 0
-    while i < len(sessions):
-        if  Src and Dst and SPort and DPort in sessions[i]:
-            sessions[i][4] = sessions[i][4].append_data(Src, Dst, SPort, DPort, expected_seq)
+    while i < len(dissector.Dissector.preprocess_sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.preprocess_sessions[i]:
+            dissector.Dissector.preprocess_sessions[i][4] = dissector.Dissector.preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)
+            break
         i = i + 1
 
-def get_session(Src, Dst, SPort, DPort, obj):
+def get_stream(Src, Dst, SPort, DPort, obj):
     i = 0
-    while i < len(sessions):
-        if  Src and Dst and SPort and DPort in sessions[i]:
-            if sessions[i][4].seq == obj.seq and obj.push:
-                sessions[i][4].append_packet(obj.pkt)
-                sessions[i][4].change_seq(obj.seq + len(obj.pkt))
-                sessions[i][4].push = obj.push
-                s = sessions[i][4].pkt
-                del(sessions[i])
-                return s
+    while i < len(dissector.Dissector.sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.sessions[i]:
+            if dissector.Dissector.sessions[i][4].seq == obj.seq:
+                return dissector.Dissector.sessions[i][4].pkt
         i = i + 1
-    return None
+    return False
+
+def is_stream_end(Src, Dst, SPort, DPort, obj):
+    i = 0
+    while i < len(dissector.Dissector.sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.sessions[i]:
+            if dissector.Dissector.sessions[i][4].seq == obj.seq:
+                return True
+        i = i + 1
+    return False
+
+
 
 class Stream:
     pkt = ""
     seq = -1
-    push = None
-    def __init__(self, pkt, push, seq):
-        self.pkt = self.pkt + pkt
-        self.push = push
+    length_of_last_packet = -1
+
+    def __init__(self, pkt, seq):
+        self.pkt = pkt
         self.seq = seq
-        if not push:
-            self.pkt = self.pkt + pkt
+        self.length_of_last_packet = len(pkt)
             
     def append_data(self, Src, Dst, SPort, DPort, obj):
-        if self.seq == obj.seq and obj.push:
+        if self.seq == obj.seq:
             self.append_packet(obj.pkt)
             self.change_seq(obj.seq + len(obj.pkt))
-            self.push = obj.push
-            ###### here
-            
-            pk = IP(src=Src, dst=Dst)/TCP(sport=SPort, dport=DPort)/self.pkt
-            AAAAAAAAAAAAAAAA = dissector.Dissector()
-            
-            None
-
-        elif self.seq == obj.seq:
-            self.append_packet(obj.pkt)
-            self.change_seq(obj.seq + len(obj.pkt))
-            self.push = obj.push
+            self.length_of_last_packet = len(obj.pkt)
         return self
+            ###### here
+
+            #pk = IP(src=Src, dst=Dst)/TCP(sport=SPort, dport=DPort)/self.pkt
+            #AAAAAAAAAAAAAAAA = dissector.Dissector()
+
 
     def append_packet(self, pkt):
         self.pkt = self.pkt + pkt
@@ -147,34 +138,6 @@ class HTTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        flags = None
-        seq = pkt.underlayer.fields["seq"]
-        push = False
-        flags_bits = list(int2bin(pkt.underlayer.fields["flags"]))
-        if flags_bits[11] == '1':
-            flags = 'A'
-        if flags_bits[12] == '1':
-            flags = flags + 'P'
-        if 'P' in flags:
-            push = True
-        else:
-            push = False
-            
-        if not is_created_session(pkt.underlayer.underlayer.fields["src"],
-                                    pkt.underlayer.underlayer.fields["dst"],
-                                    pkt.underlayer.fields["sport"],
-                                    pkt.underlayer.fields["dport"]) and not push:
-            seqn = pkt.underlayer.fields["seq"] + len(s)
-            stream = Stream(s, push, seqn)
-            create_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        
-        elif  is_created_session(pkt.underlayer.underlayer.fields["src"],
-                                    pkt.underlayer.underlayer.fields["dst"],
-                                    pkt.underlayer.fields["sport"],
-                                    pkt.underlayer.fields["dport"]):
-            seqn = pkt.underlayer.fields["seq"] + len(s)
-            stream = Stream(s, push, seqn)
-            build_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
 
         remain = ""
         value = ""
@@ -272,10 +235,9 @@ class HTTPResField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        flags = None
         seq = pkt.underlayer.fields["seq"]
-        push = False
-        
+        '''
+        flags = None
         flags_bits = list(int2bin(pkt.underlayer.fields["flags"]))
         if flags_bits[11] == '1':
             flags = 'A'
@@ -285,30 +247,21 @@ class HTTPResField(StrField):
             push = True
         else:
             push = False
-            
-        if not is_created_session(pkt.underlayer.underlayer.fields["src"],
-                                    pkt.underlayer.underlayer.fields["dst"],
-                                    pkt.underlayer.fields["sport"],
-                                    pkt.underlayer.fields["dport"]) and not push:
+        '''
+        if not is_created_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]) :
             seqn = pkt.underlayer.fields["seq"] + len(s)
-            stream = Stream(s, push, seqn)
+            stream = Stream(s, seqn)
             create_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        
-        elif  is_created_session(pkt.underlayer.underlayer.fields["src"],
-                                    pkt.underlayer.underlayer.fields["dst"],
-                                    pkt.underlayer.fields["sport"],
-                                    pkt.underlayer.fields["dport"]) and not push:
+        elif  is_created_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]):
             seqn = pkt.underlayer.fields["seq"]
-            stream = Stream(s, push, seqn)
+            stream = Stream(s, seqn)
             build_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        
-        elif  is_created_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]) and push:
-            if not self.fin:
-                seqn = pkt.underlayer.fields["seq"]
-                stream = Stream(s, push, seqn)
-                s = get_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-                #print s
-                self.fin = True
+        if len(dissector.Dissector.sessions) > 0:
+            if is_stream_end(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream):
+                mylen = len(s)
+                s = get_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
+                mylen = len(s)
+                None
         remain = ""
         value = ""
         if self.name == "status-line: " and s.startswith("HTTP/"):
