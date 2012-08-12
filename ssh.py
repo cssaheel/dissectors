@@ -1286,7 +1286,7 @@ class SSH(Packet):
     @attention: this class inherets Packet
     """
     name = "ssh"
-    fields_desc = [SSHField("SSHPayload", "")]
+    fields_desc = [SSHField("sshpayload", "")]
 
 bind_layers(TCP, SSH, dport=22)
 bind_layers(TCP, SSH, sport=22)

@@ -1,5 +1,6 @@
-from scapy.all import Packet, rdpcap, ConditionalField, Emph, conf
+import json
 import binascii # this class to handle the hex/ascii converting
+from scapy.all import Packet, rdpcap, ConditionalField, Emph, conf
 '''
 imported files from Scapy library
 '''
@@ -367,10 +368,24 @@ class Dissector(Packet):
                             if isinstance(fields[0], str) and\
                             fields[0].startswith("smtp"):
                                 recognized = True
-                                if fields[j][1].startswith("'") and fields[j][1].endswith("'"):
-                                    entry[fields[j][0]] = self.clean_out(fields[j][1][1:-1])
+                                if fields[j][0].startswith("data") and fields[j][0].endswith("data"):
+                                    #result = self.clean_out(fields[j][1][1:-1])
+                                    entry[fields[j][0]] = fields[j][1]
+                                elif fields[j][0].startswith("response") and fields[j][0].endswith("response"):
+                                    result = fields[j][1]
+                                    result = "[" + result[1:-1].replace("'", '"') + "]"
+                                    result = json.loads(result)
+                                    entry[fields[j][0]] = result
+                                elif fields[j][0].startswith("command") and fields[j][0].endswith("command"):
+                                    #result = self.clean_out(fields[j][1][1:-1])
+                                    entry[fields[j][0]] = fields[j][1][1:-1]
+                                elif fields[j][0].startswith("argument") and fields[j][0].endswith("argument"):
+                                    #result = self.clean_out(fields[j][1][1:-1])
+                                    entry[fields[j][0]] = fields[j][1][1:-1]
                                 else:
-                                    entry[fields[j][0]] = self.clean_out(self.clean_out(fields[j][1]))
+                                    ss = fields[j][1]
+                                    entry[fields[j][0]] = ss
+                                    ss = self.clean_out(self.clean_out(fields[j][1]))
                             
                                 
                             if isinstance(fields[0], str) and\
@@ -389,7 +404,7 @@ class Dissector(Packet):
                             if isinstance(fields[0], str) and\
 							 fields[0].startswith("irc"):
                                 recognized = True
-                                entry = fields[j][1]
+                                entry = fields[j][1][1:-1]
                                 
                             if isinstance(fields[0], str) and\
                              fields[0].startswith("telnet"):

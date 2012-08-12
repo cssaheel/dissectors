@@ -176,7 +176,7 @@ class SMTPResField(StrField):
                  self.get_code_msg(res[0][:3]) + " " + res[0][3:]
             else:
                 value = "(" + res[0] + ") " + self.get_code_msg(res[0])
-            return arguments, value
+            return arguments[:-1], [value]
 
         if length > 1:
             reponses = []
@@ -191,10 +191,10 @@ class SMTPResField(StrField):
                 if "-" in element[0]:
                     reponses.append(["(" + element[0][:3] + ") " +
                                       self.get_code_msg(element[0][:3]) +
-                                       " " + element[0][3:], arguments])
+                                       " " + element[0][3:], arguments[:-1]])
                 else:
                     reponses.append(["(" + element[0] + ") " +
-                                      self.get_code_msg(element[0]),
+                                      self.get_code_msg(element[0][:-1]),
                                        arguments])
             return "", reponses
         return "", ""
@@ -258,7 +258,7 @@ class SMTPReqField(StrField):
                 while i < length:
                     remain = remain + ls[i] + ' '
                     i = i + 1
-                return remain, value
+                return remain[:-1], value
         else:
             return "", ls[0]
 
@@ -282,7 +282,7 @@ class SMTPData(Packet):
     @attention: this class inherets Packet
     """
     name = "smtp"
-    fields_desc = [SMTPDataField("SMTP Data", "")]
+    fields_desc = [SMTPDataField("data", "")]
 
 
 class SMTPResponse(Packet):

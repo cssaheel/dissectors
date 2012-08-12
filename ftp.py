@@ -295,7 +295,7 @@ class FTPData(Packet):
     @attention: it inherets Packet class from Scapy library
     """
     name = "ftp"
-    fields_desc = [FTPDataField("FTP Data", "")]
+    fields_desc = [FTPDataField("data", "")]
 
 
 class FTPResponse(Packet):

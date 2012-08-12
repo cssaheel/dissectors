@@ -30,10 +30,10 @@ class IRCResField(StrField):
             return "", value
         elif length > 1:
                 value = ""
-                value = value + "Response: " + ls[0]
+                value = value + "response: " + ls[0]
                 i = 1
                 while i < length - 1:
-                    value = value + " Response: " + ls[i]
+                    value = value + " response: " + ls[i]
                     if i < length - 2:
                         value = value + " | "
                     i = i + 1
@@ -78,7 +78,7 @@ class IRCReqField(StrField):
         ls = s.split()
         length = len(ls)
         if length > 1:
-            value = "Request Command: " + ls[0] + ","
+            value = "command: " + ls[0] + ","
             if length == 2:
                 remain = ls[1]
                 value = value + " Parameters: " + remain
@@ -117,7 +117,7 @@ class IRCRes(Packet):
     @attention: it inherets Packet from Scapy library
     """
     name = "irc"
-    fields_desc = [IRCResField("Response", "", "H")]
+    fields_desc = [IRCResField("response", "", "H")]
 
 
 class IRCReq(Packet):
@@ -126,7 +126,7 @@ class IRCReq(Packet):
     @attention: it inherets Packet from Scapy library
     """
     name = "irc"
-    fields_desc = [IRCReqField("Request Command", "", "H")]
+    fields_desc = [IRCReqField("command", "", "H")]
 
 bind_layers(TCP, IRCReq, dport=6660)
 bind_layers(TCP, IRCReq, dport=6661)

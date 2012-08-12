@@ -55,7 +55,16 @@ myl = list("POPOPOPOP")
 print(myl)
 print(ssssss[2])
 print(24 & 8)
-
+oo = []
+oo.append("hello")
+fff = "['hello']"
+rep = fff.replace("'", '"')
+print(["HHHHHHHHHH"])
+print rep
+print(json.loads('[["(220) <domain> Service ready -xc90.websitewelcome.com", "ESMTP Exim 4.69 #1 Mon, 05 Oct 2009 01:05:54 -0500  "], ["(220) <domain> Service ready -We", "do not authorize the use of this system to transport unsolicited,  "], ["(220) <domain> Service ready", "and/or bulk e-mail. "]]'))
+#fff2 = json.loads(fff, encoding="ascii")
+#fff2 = json.loads('["foo", {"bar":["baz", null, 1.0, 2]}]')
+#print(fff2[0])
 pkts = rdpcap("/root/Desktop/http.cap")
 f = open("/root/Desktop/file.txt", "w")
 i = 0
