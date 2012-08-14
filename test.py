@@ -71,3 +71,7 @@ i = 0
 #for pkt in pkts:
     #pkt.show()
 
+mydict = {"aa": 1, "bb": 2}
+if "aa" in mydict:
+    mydict.pop("aa")
+    print(mydict)

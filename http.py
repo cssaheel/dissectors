@@ -1,38 +1,3 @@
-from scapy.layers.dot11 import *
-from scapy.layers.ir import *
-from scapy.layers.ppp import *
-from scapy.layers.gprs import *
-from scapy.layers.mobileip import *
-from scapy.layers.smb import *
-from scapy.layers.bluetooth import *
-from scapy.layers.isakmp import *
-from scapy.layers.radius import *
-from scapy.layers.hsrp import *
-from scapy.layers.netbios import *
-from scapy.layers.snmp import *
-from scapy.layers.dhcp6 import *
-from scapy.layers.l2 import *
-from scapy.layers.rip import *
-from scapy.layers.inet6 import *
-from scapy.layers.netflow import *
-from scapy.layers.tftp import *
-from scapy.layers.dhcp import *
-from scapy.layers.l2tp import *
-from scapy.layers.rtp import *
-from scapy.layers.inet import *
-from scapy.layers.ntp import *
-from scapy.layers.x509 import *
-from scapy.layers.dns import *
-from scapy.layers.llmnr import *
-from scapy.layers.sebek import *
-from scapy.layers.pflog import *
-from scapy.layers.dot11 import *
-from scapy.layers.mgcp import *
-from scapy.layers.skinny import *
-
-import base64
-import binascii
-from scapy.all import *
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
@@ -40,82 +5,7 @@ from scapy.layers.inet import *
 import dissector
 
 
-def is_created_session(Src, Dst, SPort, DPort):
-    """
-    method returns true if the ssh session is exist
-    @param Src: source ip address
-    @param Dst: destination ip address
-    @param SPort: source port number
-    @param DPort: destination port number
-    """
-    i = 0
-    while i < len(dissector.Dissector.preprocess_sessions):
-        if  Src and Dst and SPort and DPort in dissector.Dissector.preprocess_sessions[i]:
-            return True
-        i = i + 1
-    return False
 
-def create_session(Src, Dst, SPort, DPort, expected_seq):
-    if not is_created_session(Src, Dst, SPort, DPort):
-        dissector.Dissector.preprocess_sessions.append([Src, Dst, SPort, DPort, expected_seq])
-        
-def build_stream(Src, Dst, SPort, DPort, stream):
-    i = 0
-    while i < len(dissector.Dissector.preprocess_sessions):
-        if  Src and Dst and SPort and DPort in dissector.Dissector.preprocess_sessions[i]:
-            dissector.Dissector.preprocess_sessions[i][4] = dissector.Dissector.preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)
-            break
-        i = i + 1
-
-def get_stream(Src, Dst, SPort, DPort, obj):
-    i = 0
-    while i < len(dissector.Dissector.sessions):
-        if  Src and Dst and SPort and DPort in dissector.Dissector.sessions[i]:
-            if dissector.Dissector.sessions[i][4].seq == obj.seq:
-                return dissector.Dissector.sessions[i][4].pkt
-        i = i + 1
-    return False
-
-def is_stream_end(Src, Dst, SPort, DPort, obj):
-    i = 0
-    while i < len(dissector.Dissector.sessions):
-        if  Src and Dst and SPort and DPort in dissector.Dissector.sessions[i]:
-            if dissector.Dissector.sessions[i][4].seq == obj.seq:
-                return True
-        i = i + 1
-    return False
-
-
-
-class Stream:
-    pkt = ""
-    seq = -1
-    length_of_last_packet = -1
-
-    def __init__(self, pkt, seq):
-        self.pkt = pkt
-        self.seq = seq
-        self.length_of_last_packet = len(pkt)
-            
-    def append_data(self, Src, Dst, SPort, DPort, obj):
-        if self.seq == obj.seq:
-            self.append_packet(obj.pkt)
-            self.change_seq(obj.seq + len(obj.pkt))
-            self.length_of_last_packet = len(obj.pkt)
-        return self
-            ###### here
-
-            #pk = IP(src=Src, dst=Dst)/TCP(sport=SPort, dport=DPort)/self.pkt
-            #AAAAAAAAAAAAAAAA = dissector.Dissector()
-
-
-    def append_packet(self, pkt):
-        self.pkt = self.pkt + pkt
-    
-    def change_seq(self, seq):
-        self.seq = seq
-
-    
 def int2bin(n, count=16):
     """returns the binary of integer n, using count number of digits"""
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
@@ -138,7 +28,7 @@ class HTTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-
+        cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
         remain = ""
         value = ""
         if self.name == "request-line: ":
@@ -248,20 +138,9 @@ class HTTPResField(StrField):
         else:
             push = False
         '''
-        if not is_created_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]) :
-            seqn = pkt.underlayer.fields["seq"] + len(s)
-            stream = Stream(s, seqn)
-            create_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        elif  is_created_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]):
-            seqn = pkt.underlayer.fields["seq"]
-            stream = Stream(s, seqn)
-            build_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        if len(dissector.Dissector.sessions) > 0:
-            if is_stream_end(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream):
-                mylen = len(s)
-                s = get_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-                mylen = len(s)
-                None
+        cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
         remain = ""
         value = ""
         if self.name == "status-line: " and s.startswith("HTTP/"):

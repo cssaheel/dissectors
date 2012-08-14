@@ -48,6 +48,122 @@ from smtp import *
 from ssh import *
 from telnet import *
 
+def is_created_session(Src, Dst, SPort, DPort):
+    """
+    method returns true if the ssh session is exist
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    """
+    i = 0
+    while i < len(dissector.Dissector.preprocess_sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.preprocess_sessions[i]:
+            return True
+        i = i + 1
+    return False
+
+def create_session(Src, Dst, SPort, DPort, expected_seq):
+    if not is_created_session(Src, Dst, SPort, DPort):
+        dissector.Dissector.preprocess_sessions.append([Src, Dst, SPort, DPort, expected_seq])
+        
+def build_stream(Src, Dst, SPort, DPort, stream):
+    i = 0
+    while i < len(dissector.Dissector.preprocess_sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.preprocess_sessions[i]:
+            dissector.Dissector.preprocess_sessions[i][4] = dissector.Dissector.preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)
+            break
+        i = i + 1
+
+def get_stream(Src, Dst, SPort, DPort, obj):
+    i = 0
+    while i < len(dissector.Dissector.sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.sessions[i]:
+            if dissector.Dissector.sessions[i][4].seq == obj.seq:
+                return dissector.Dissector.sessions[i][4].pkt
+        i = i + 1
+    return False
+
+def is_stream_end(Src, Dst, SPort, DPort, obj):
+    i = 0
+    while i < len(dissector.Dissector.sessions):
+        if  Src and Dst and SPort and DPort in dissector.Dissector.sessions[i]:
+            if dissector.Dissector.sessions[i][4].seq == obj.seq and dissector.Dissector.sessions[i][4].stream:
+                return True
+        i = i + 1
+    return False
+
+def check_stream(Src, Dst, SPort, DPort, Seq, s):
+    if not dissector.is_created_session(Src, Dst, SPort, DPort) :
+        seqn = Seq + len(s)
+        stream = dissector.Stream(s, Seq)
+        dissector.create_session(Src, Dst, SPort, DPort, stream)
+    elif  dissector.is_created_session(Src, Dst, SPort, DPort):
+        seqn = Seq
+        stream = dissector.Stream(s, seqn)
+        dissector.build_stream(Src, Dst, SPort, DPort, stream)
+    if len(dissector.Dissector.sessions) > 0:
+        if dissector.is_stream_end(Src, Dst, SPort, DPort, stream):
+            s = dissector.get_stream(Src, Dst, SPort, DPort, stream)
+            return s
+    return -1
+
+class Stream:
+    pkt = ""
+    seq = -1
+    length_of_last_packet = -1
+    stream = False
+    def __init__(self, pkt, seq):
+        self.stream = False
+        self.pkt = pkt
+        self.seq = seq
+        self.length_of_last_packet = len(pkt)
+            
+    def append_data(self, Src, Dst, SPort, DPort, obj):
+        if self.seq == obj.seq:
+            self.stream = True
+            self.append_packet(obj.pkt)
+            self.change_seq(obj.seq + len(obj.pkt))
+            self.length_of_last_packet = len(obj.pkt)
+        return self
+            ###### here
+
+            #pk = IP(src=Src, dst=Dst)/TCP(sport=SPort, dport=DPort)/self.pkt
+            #AAAAAAAAAAAAAAAA = dissector.Dissector()
+
+
+    def append_packet(self, pkt):
+        self.pkt = self.pkt + pkt
+    
+    def change_seq(self, seq):
+        self.seq = seq
+
+
+class Stream:
+    pkt = ""
+    seq = -1
+    length_of_last_packet = -1
+    stream = False
+    def __init__(self, pkt, seq):
+        self.stream = False
+        self.pkt = pkt
+        self.seq = seq
+        self.length_of_last_packet = len(pkt)
+            
+    def append_data(self, Src, Dst, SPort, DPort, obj):
+        if self.seq == obj.seq:
+            self.stream = True
+            self.append_packet(obj.pkt)
+            self.change_seq(obj.seq + len(obj.pkt))
+            self.length_of_last_packet = len(obj.pkt)
+        return self
+
+    def append_packet(self, pkt):
+        self.pkt = self.pkt + pkt
+    
+    def change_seq(self, seq):
+        self.seq = seq
+
 def int2bin(n, count=16):
     """returns the binary of integer n, using count number of digits"""
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
