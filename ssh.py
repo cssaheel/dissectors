@@ -1,9 +1,112 @@
 import binascii
+import base64
+import json
 from scapy.packet import *
 from scapy.utils import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import *
+import dissector
+
+preprocess_sessions = []
+sessions = []
+
+def is_created_stream_session(Src, Dst, SPort, DPort):
+    """
+method returns true if the ssh session is exist
+@param Src: source ip address
+@param SPort: source port number
+@param DPort: destination port number
+"""
+    i = 0
+    while i < len(preprocess_sessions):
+        if  Src == preprocess_sessions[i][0] and Dst == preprocess_sessions[i][1] and SPort == preprocess_sessions[i][2] and DPort == preprocess_sessions[i][3]:
+            return True
+        i = i + 1
+    return False
+
+def create_stream_session(Src, Dst, SPort, DPort, stream):
+    """
+method for creating encypted ssh sessions
+@param Src: source ip address
+@param Dst: destination ip address
+@param SPort: source port number
+@param DPort: destination port number
+"""
+    if stream.push:
+        sessions.append([Src, Dst, SPort, DPort, stream])
+    else:
+        preprocess_sessions.append([Src, Dst, SPort, DPort, stream])
+
+def build_stream(Src, Dst, SPort, DPort, stream):
+    i = 0
+    while i < len(preprocess_sessions):
+        if  Src == preprocess_sessions[i][0] and Dst == preprocess_sessions[i][1] and SPort == preprocess_sessions[i][2] and DPort == preprocess_sessions[i][3]:
+            if not stream.push:
+                preprocess_sessions[i][4] = preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)
+            else:
+                sessions.append([Src, Dst, SPort, DPort, preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)])
+                del(preprocess_sessions[i])
+            break
+        i = i + 1
+
+def get_stream(Src, Dst, SPort, DPort, obj):
+    i = 0
+    while i < len(sessions):
+        if Src == sessions[i][0] and Dst == sessions[i][1] and SPort == sessions[i][2] and DPort == sessions[i][3]:
+            if sessions[i][4].seq == obj.seq:
+                return sessions[i][4].pkt
+        i = i + 1
+    return -1
+
+def is_stream_end(Src, Dst, SPort, DPort, obj):
+    i = 0
+    while i < len(sessions):
+        if  Src == sessions[i][0] and Dst == sessions[i][1] and SPort == sessions[i][2] and DPort == sessions[i][3]:
+            if sessions[i][4].seq == obj.seq:
+                # and dissector.Dissector.sessions[i][4].stream:
+                return True
+        i = i + 1
+    return False
+
+class Stream:
+    pkt = ""
+    seq = -1
+    push = None
+    length_of_last_packet = -1
+    stream = False
+    def __init__(self, pkt, push, seq):
+        self.stream = False
+        self.pkt = pkt
+        self.push = push
+        self.seq = seq
+        self.length_of_last_packet = len(pkt)
+        
+            
+    def append_data(self, Src, Dst, SPort, DPort, obj):
+        if self.seq + self.length_of_last_packet == obj.seq and obj.push:
+            self.stream = True
+            self.append_packet(obj.pkt)
+            self.change_seq(obj.seq)
+            self.push = obj.push
+            self.length_of_last_packet = len(obj.pkt)
+        elif self.seq + self.length_of_last_packet == obj.seq:
+            self.append_packet(obj.pkt)
+            self.change_seq(obj.seq)
+            self.push = obj.push
+        return self
+
+    def append_packet(self, pkt):
+        self.pkt = self.pkt + pkt
+    
+    def change_seq(self, seq):
+        self.seq = seq
+
+    
+def int2bin(n, count=16):
+    """returns the binary of integer n, using count number of digits"""
+    return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
+
 # holds ssh encrypted sessions
 encryptedsessions = []
 
@@ -112,9 +215,12 @@ class SSHField(XByteField):
         """
         for c in s:
             ustruct = struct.unpack(self.fmt, c)
+            
             byte = str(hex(ustruct[0]))[2:]
             if len(byte) == 1:
                 byte = "0" + byte
+            
+            #byte = base64.standard_b64encode(str(ustruct[0]))
             self.myres = self.myres + byte
         return s
 
@@ -207,6 +313,47 @@ class SSHField(XByteField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        '''
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if len(dissector.Dissector.sessions) <= 0:
+            return "", ""
+        if not cstream == -1:
+            s = cstream
+        '''
+        ss = -1
+        flags = None
+        seq = pkt.underlayer.fields["seq"]
+        push = False
+        flags_bits = list(int2bin(pkt.underlayer.fields["flags"]))
+        if flags_bits[11] == '1':
+            flags = 'A'
+        if flags_bits[12] == '1':
+            flags = flags + 'P'
+        if 'P' in flags:
+            push = True
+        else:
+            push = False
+            
+        if not is_created_stream_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]) :
+            seqn = pkt.underlayer.fields["seq"]
+            stream = Stream(s, push, seqn)
+            create_stream_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
+        elif  is_created_stream_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]):
+            seqn = pkt.underlayer.fields["seq"]
+            stream = Stream(s, push, seqn)
+            build_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
+        
+        if not dissector.Dissector.preprocess_done:
+            return "", ""
+        if len(sessions) > 0:
+            if is_stream_end(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream):
+                ss = get_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
+            if not ss == -1:
+                s = ss
+            else:
+                return "", ""
         self.myresult = ""
         resultlist = []
         if s.upper().startswith("SSH"):
@@ -230,9 +377,9 @@ class SSHField(XByteField):
                 payload = self.myresult[12:12 + payloadl * 2]
                 padding = self.myresult[12 + payloadl * 2:12 + payloadl * 2\
                                          + int(padl) * 2]
-                resultlist.append(("Packet Length", pakl))
-                resultlist.append(("Padding Length", padl))
-                resultlist.append(("Opcode", opcode))
+                resultlist.append(("packet_length", pakl))
+                resultlist.append(("padding_length", padl))
+                resultlist.append(("opcode", opcode))
 
             if is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
                                   pkt.underlayer.underlayer.fields["dst"],
@@ -242,13 +389,13 @@ class SSHField(XByteField):
                                     pkt.underlayer.underlayer.fields["dst"],
                                     pkt.underlayer.fields["sport"],
                                     pkt.underlayer.fields["dport"]):
-                    encrypted_payload = self.myresult[:\
+                    encrypted_payload = base64.standard_b64encode(self.get_ascii(self.myresult[:\
                     get_mac_length(pkt.underlayer.underlayer.fields["src"],
                                  pkt.underlayer.underlayer.fields["dst"],
                                  pkt.underlayer.fields["sport"],
-                                 pkt.underlayer.fields["dport"]) * 2]
+                                 pkt.underlayer.fields["dport"]) * 2]))
                 else:
-                    encrypted_payload = self.myresult[:]
+                    encrypted_payload = base64.standard_b64encode(self.myresult[:])
 
                 resultlist.append(("encrypted_payload", encrypted_payload))
 
@@ -256,11 +403,11 @@ class SSHField(XByteField):
                                     pkt.underlayer.underlayer.fields["dst"],
                                     pkt.underlayer.fields["sport"],
                                     pkt.underlayer.fields["dport"]):
-                    mac = self.myresult[\
+                    mac = base64.standard_b64encode(self.get_ascii(self.myresult[\
                           get_mac_length(pkt.underlayer.underlayer.fields["src"],
                                        pkt.underlayer.underlayer.fields["dst"],
                                        pkt.underlayer.fields["sport"],
-                                       pkt.underlayer.fields["dport"]) * 2:]
+                                       pkt.underlayer.fields["dport"]) * 2:]))
                     resultlist.append(("mac", mac))
 
             if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
@@ -270,7 +417,7 @@ class SSHField(XByteField):
                                        opcode.startswith("SSH_MSG_KEXDH_INIT"):
                 try:
                     e_length = int(self.myresult[12:20], 16)
-                    e = self.myresult[20:20 + e_length * 2]
+                    e = base64.standard_b64encode(self.get_ascii(self.myresult[20:20 + e_length * 2]))
                     resultlist.append(("e_length", str(e_length)))
                     resultlist.append(("e", e))
                     self.found = True
@@ -292,10 +439,10 @@ class SSHField(XByteField):
                         server_public_host_key_and_certificates_K_S_length\
                  * 2:20 + server_public_host_key_and_certificates_K_S_length\
                                  * 2 + 8], 16)
-                    f = self.myresult[20 +\
+                    f = base64.standard_b64encode(self.get_ascii(self.myresult[20 +\
                     server_public_host_key_and_certificates_K_S_length\
         * 2 + 8:20 + server_public_host_key_and_certificates_K_S_length\
-                     * 2 + 8 + f_length * 2]
+                     * 2 + 8 + f_length * 2]))
                     signature_of_h_length = int(self.myresult[20 +\
                      server_public_host_key_and_certificates_K_S_length\
                       * 2 + 8 + f_length * 2:20 +\
@@ -307,18 +454,16 @@ class SSHField(XByteField):
                        server_public_host_key_and_certificates_K_S_length\
                         * 2 + 8 + f_length * 2 + 8 +\
                          signature_of_h_length * 2]
-                    resultlist.append(("\
-                    server_public_host_key_and_certificates_K_S_length",
+                    resultlist.append(("server_public_host_key_and_certificates_K_S_length",
                      str(server_public_host_key_and_certificates_K_S_length)))
-                    resultlist.append((\
-                    "server_public_host_key_and_certificates_K_S",
-            self.get_ascii(server_public_host_key_and_certificates_K_S)))
+                    resultlist.append(("server_public_host_key_and_certificates_K_S",
+            base64.standard_b64encode(self.get_ascii(server_public_host_key_and_certificates_K_S))))
                     resultlist.append(("f_length", str(f_length)))
                     resultlist.append(("f", f))
                     resultlist.append(("signature_of_h_length",
                      str(signature_of_h_length)))
                     resultlist.append(("signature_of_h",
-                     self.get_ascii(signature_of_h)))
+                     base64.standard_b64encode(self.get_ascii(signature_of_h))))
                     self.found = True
                 except Exception:
                     self.found = False
@@ -327,8 +472,7 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_SERVICE_REQUEST"):
+                                       and opcode.startswith("SSH_MSG_SERVICE_REQUEST"):
                 try:
                     service_name_length = int(self.myresult[12:20], 16)
                     service_name = self.myresult[20:20 \
@@ -336,7 +480,7 @@ class SSHField(XByteField):
                     resultlist.append(("service_name_length",
                      str(service_name_length)))
                     resultlist.append(("service_name",
-                     self.get_ascii(service_name)))
+                     base64.standard_b64encode(self.get_ascii(service_name))))
                     self.found = True
                 except Exception:
                     self.found = False
@@ -345,8 +489,7 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_SERVICE_ACCEPT"):
+                                       and opcode.startswith("SSH_MSG_SERVICE_ACCEPT"):
                 try:
                     service_name_length = int(self.myresult[12:20], 16)
                     service_name = self.myresult[20:20 +\
@@ -363,8 +506,7 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_NEWKEYS"):
+                                       and opcode.startswith("SSH_MSG_NEWKEYS"):
                 try:
                     set_as_encrypted(pkt.underlayer.underlayer.fields["src"],
                                    pkt.underlayer.underlayer.fields["dst"],
@@ -409,13 +551,12 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_IGNORE"):
+                                       and opcode.startswith("SSH_MSG_IGNORE"):
                 try:
                     data_length = int(self.myresult[12:20], 16)
                     data = self.myresult[20:20 + data_length * 2]
                     resultlist.append(("data_length", str(data_length)))
-                    resultlist.append(("data", self.get_ascii(data)))
+                    resultlist.append(("data", base64.standard_b64encode(self.get_ascii(data))))
                     self.found = True
                 except Exception:
                     self.found = False
@@ -424,8 +565,7 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_USERAUTH_PK_OK"):
+                                       and opcode.startswith("SSH_MSG_USERAUTH_PK_OK"):
                 try:
                     public_key_algorithm_name_from_the_request_length =\
                      int(self.myresult[12:20], 16)
@@ -444,12 +584,10 @@ class SSHField(XByteField):
                     resultlist.append((\
                     "public_key_algorithm_name_from_the_request_length",
                      str(public_key_algorithm_name_from_the_request_length)))
-                    resultlist.append(("public_key_algorithm_name\
-                    _from_the_request",
+                    resultlist.append(("public_key_algorithm_name_from_the_request",
                      self.get_ascii(\
                     public_key_algorithm_name_from_the_request)))
-                    resultlist.append(("public_key_blob_from_the\
-                    _request_length",
+                    resultlist.append(("public_key_blob_from_the_request_length",
                      str(public_key_blob_from_the_request_length)))
                     resultlist.append(("public_key_blob_from_the_request",
                      self.get_ascii(public_key_blob_from_the_request)))
@@ -494,8 +632,7 @@ class SSHField(XByteField):
                           and opcode.startswith("SSH_MSG_UNIMPLEMENTED"):
                 try:
                     seqn = int(self.myresult[12:20], 16)
-                    resultlist.append((\
-                    "packet sequence number of rejected message", seqn))
+                    resultlist.append(("packet sequence number of rejected message", seqn))
                     self.found = True
                 except Exception:
                     self.found = False
@@ -504,15 +641,14 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_CHANNEL_DATA"):
+                                       and opcode.startswith("SSH_MSG_CHANNEL_DATA"):
                 try:
                     recipient_channel = int(self.myresult[12:20], 16)
                     data_length = int(self.myresult[20:28], 16)
                     data = self.myresult[28:28 + data_length * 2]
                     resultlist.append(("recipient_channel", recipient_channel))
                     resultlist.append(("data_length", str(data_length)))
-                    resultlist.append(("data", self.get_ascii(data)))
+                    resultlist.append(("data", base64.standard_b64encode(self.get_ascii(data))))
                     self.found = True
                 except Exception:
                     self.found = False
@@ -521,8 +657,7 @@ class SSHField(XByteField):
                                       pkt.underlayer.underlayer.fields["dst"],
                                       pkt.underlayer.fields["sport"],
                                       pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith(\
-                                        "SSH_MSG_USERAUTH_REQUEST"):
+                                       and opcode.startswith("SSH_MSG_USERAUTH_REQUEST"):
                 try:
                     user_name_length = int(self.myresult[12:20], 16)
                     user_name = self.myresult[20:20 + user_name_length * 2]
@@ -787,23 +922,19 @@ class SSHField(XByteField):
                         resultlist.append(("public_key_algorithm_for\
                         _host_key_length",
                         str(public_key_algorithm_for_host_key_length)))
-                        resultlist.append(("public_key_algorithm_for\
-                        _host_key",
+                        resultlist.append(("public_key_algorithm_for_host_key",
                         self.get_ascii(public_key_algorithm_for_host_key)))
-                        resultlist.append(("public_host_key_and_certificates\
-                        _for_client_host_length",
+                        resultlist.append(("public_host_key_and_certificates_for_client_host_length",
                          str(\
                     public_host_key_and_cert_for_client_host_len)))
-                        resultlist.append(("public_host_key_and_certificates\
-                        _for_client_host",
+                        resultlist.append(("public_host_key_and_certificates_for_client_host",
                          self.get_ascii(\
                         public_host_key_and_certificates_for_client_host)))
                         resultlist.append(("client_host_name_length",
                          str(client_host_name_length)))
                         resultlist.append(("client_host_name",
                          self.get_ascii(client_host_name)))
-                        resultlist.append(("user_name_on_the_client\
-                        _host_length",
+                        resultlist.append(("user_name_on_the_client_host_length",
                          str(user_name_on_the_client_host_length)))
                         resultlist.append(("user_name_on_the_client_host",
                          self.get_ascii(user_name_on_the_client_host)))
@@ -842,8 +973,7 @@ class SSHField(XByteField):
                     partial_success_boolean = int(self.myresult[20 +\
      authentications_that_can_continue_length * 2:20 +\
       authentications_that_can_continue_length * 2 + 8], 16)
-                    resultlist.append(("authentications_that_can\
-                    _continue_length",
+                    resultlist.append(("authentications_that_can_continue_length",
                      str(authentications_that_can_continue_length)))
                     resultlist.append(("authentications_that_can_continue",
                      authentications_that_can_continue))
@@ -881,7 +1011,7 @@ class SSHField(XByteField):
                     pkt.underlayer.fields["dport"])\
                      and opcode.startswith("SSH_MSG_KEXINIT"):
                 try:
-                    cookie = self.myresult[12:44]
+                    cookie = base64.standard_b64encode(self.myresult[12:44])
                     kex_algorithms_length = int(self.myresult[44:52], 16)
                     kex_algorithms = self.get_ascii(self.myresult[52:52 +\
                      kex_algorithms_length * 2])
@@ -1208,42 +1338,25 @@ class SSHField(XByteField):
                         i = i + 1
 
                     resultlist.append(("cookie", cookie))
-                    resultlist.append(("kex_algorithms_length",
-                     str(kex_algorithms_length)))
+                    resultlist.append(("kex_algorithms_length", str(kex_algorithms_length)))
                     resultlist.append(("kex_algorithms", kex_algorithms))
-                    resultlist.append(("server_host_key_algorithms_length",
-                     str(server_host_key_algorithms_length)))
-                    resultlist.append(("server_host_key_algorithms",
-                     server_host_key_algorithms))
-                    resultlist.append(("encryption_algorithms_client\
-                    _to_server_length", str(\
-                    encryption_algorithms_client_to_server_length)))
-                    resultlist.append(("encryption_algorithms_client\
-                    _to_server", encryption_algorithms_client_to_server))
-                    resultlist.append(("encryption_algorithms_server_to_\
-                    client_length", str(\
-                    encryption_algorithms_server_to_client_length)))
-                    resultlist.append(("encryption_algorithms_server\
-                    _to_client", encryption_algorithms_server_to_client))
-                    resultlist.append(("mac_algorithms_client\
-                    _to_server_length", str(\
-                    mac_algorithms_client_to_server_length)))
-                    resultlist.append(("mac_algorithms_client_to_server",
-                     mac_algorithms_client_to_server))
-                    resultlist.append(("mac_algorithms_server_to_client\
-                    _length", str(mac_algorithms_server_to_client_length)))
+                    resultlist.append(("server_host_key_algorithms_length", str(server_host_key_algorithms_length)))
+                    resultlist.append(("server_host_key_algorithms", server_host_key_algorithms))
+                    resultlist.append(("encryption_algorithms_client_to_server_length", str(encryption_algorithms_client_to_server_length)))
+                    resultlist.append(("encryption_algorithms_client_to_server", encryption_algorithms_client_to_server))
+                    resultlist.append(("encryption_algorithms_server_to_client_length", str(encryption_algorithms_server_to_client_length)))
+                    resultlist.append(("encryption_algorithms_server_to_client", encryption_algorithms_server_to_client))
+                    resultlist.append(("mac_algorithms_client_to_server_length", str(mac_algorithms_client_to_server_length)))
+                    resultlist.append(("mac_algorithms_client_to_server", mac_algorithms_client_to_server))
+                    resultlist.append(("mac_algorithms_server_to_client_length", str(mac_algorithms_server_to_client_length)))
                     resultlist.append(("mac_algorithms_server_to_client",
                      mac_algorithms_server_to_client))
-                    resultlist.append(("compression_algorithms_client\
-                    _to_server_length", str(\
+                    resultlist.append(("compression_algorithms_client_to_server_length", str(\
                     compression_algorithms_client_to_server_length)))
-                    resultlist.append(("compression_algorithms_client\
-                    _to_server", compression_algorithms_client_to_server))
-                    resultlist.append(("compression_algorithms_server_to\
-                    _client_length", str(\
+                    resultlist.append(("compression_algorithms_client_to_server", compression_algorithms_client_to_server))
+                    resultlist.append(("compression_algorithms_server_to_client_length", str(\
                     compression_algorithms_server_to_client_length)))
-                    resultlist.append(("compression_algorithms_server\
-                    _to_client", compression_algorithms_server_to_client))
+                    resultlist.append(("compression_algorithms_server_to_client", compression_algorithms_server_to_client))
                     resultlist.append(("languages_client_to_server_length",
                      str(languages_client_to_server_length)))
                     resultlist.append(("languages_client_to_server",
@@ -1257,14 +1370,15 @@ class SSHField(XByteField):
                     resultlist.append(("reserved", reserved))
                     self.found = True
                 except Exception:
-                    self.found = False
+                    #self.found = False
+                    None
 
             if not self.found and not is_encrypted_session(\
             pkt.underlayer.underlayer.fields["src"],
             pkt.underlayer.underlayer.fields["dst"],
             pkt.underlayer.fields["sport"],
             pkt.underlayer.fields["dport"]):
-                payload = self.myresult[12:payloadl * 2]
+                payload = base64.standard_b64encode(self.get_ascii(self.myresult[12:payloadl * 2]))
                 resultlist.append(("payload", payload))
 
             self.found = False
@@ -1276,8 +1390,14 @@ class SSHField(XByteField):
                 if len(self.myresult) > (10 + payloadl * 2 + int(padl) * 2):
                     resultlist.append(("MAC", self.myresult[10 + payloadl *\
                                          2 + int(padl) * 2:]))
-            return "", resultlist
-        return "", resultlist
+            result_str = ""
+            for item in resultlist:
+                if len(result_str) == 0:
+                    result_str = item[0] + ": " + item[1]
+                else:
+                    result_str = result_str + ", " + item[0] + ": " + item[1]
+            return "", result_str
+        return "", "lol"
 
 
 class SSH(Packet):
@@ -1292,9 +1412,9 @@ bind_layers(TCP, SSH, dport=22)
 bind_layers(TCP, SSH, sport=22)
 
 """
-pkts = rdpcap("/root/Desktop/SSHv2.cap")
+pkts = rdpcap("/root/Desktop/ssh.cap")
 i = 0
 while i < len(pkts):
-    pkts[i].show()
+    print(pkts[i].show())
     i = i + 1
 """

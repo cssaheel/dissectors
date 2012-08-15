@@ -1,3 +1,4 @@
+import base64
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
@@ -28,7 +29,13 @@ class HTTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
+        if pkt.underlayer.name == "TCP" and cstream == -1 :
+            return "", ""
         remain = ""
         value = ""
         if self.name == "request-line: ":
@@ -138,9 +145,13 @@ class HTTPResField(StrField):
         else:
             push = False
         '''
-        cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
+        if pkt.underlayer.name == "TCP" and cstream == -1 :
+            return "", ""
         remain = ""
         value = ""
         if self.name == "status-line: " and s.startswith("HTTP/"):
@@ -204,7 +215,7 @@ class HTTPMsgField(XByteField):
             if len(byte) == 1:
                 byte = "0" + byte
             
-            self.myresult = self.myresult + c
+            self.myresult = self.myresult + base64.standard_b64encode(c)
         if self.myresult[-1:] == " ":
             self.myresult = self.myresult.rstrip()
         return "",  self.myresult

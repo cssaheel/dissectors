@@ -3,6 +3,9 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import *
+import dissector
+
+
 # holds smtp sessions
 bounded = []
 
@@ -67,6 +70,13 @@ class SMTPDataField(XByteField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        '''
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
+        '''
         self.myresult = ""
         firstb = struct.unpack(self.fmt, s[0])[0]
         self.myresult = ""
@@ -78,7 +88,7 @@ class SMTPDataField(XByteField):
             if len(byte) == 1:
                 byte = "0" + byte
             '''
-            self.myresult = self.myresult + c
+            self.myresult = self.myresult + base64.standard_b64encode(c)
         return "", self.myresult
 
 
@@ -158,6 +168,13 @@ class SMTPResField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        '''
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
+        '''
         remain = ""
         value = ""
         ls = s.splitlines()
@@ -227,6 +244,13 @@ class SMTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        '''
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
+        '''
         remain = ""
         value = ""
         ls = s.split()
@@ -244,7 +268,7 @@ class SMTPReqField(StrField):
         if is_bounded(pkt.underlayer.underlayer.fields["src"],
                      pkt.underlayer.underlayer.fields["dst"],
                      pkt.underlayer.fields["sport"]):
-            smtpd = SMTPData(s).fields["SMTP Data"]
+            smtpd = SMTPData(s).fields["data"]
             return "", ["DATA", smtpd]
 
         if length > 1:

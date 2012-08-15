@@ -3,6 +3,7 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import *
+import dissector
 
 # list for maintaining  the ftp data sessions
 ftpdatasessions = []
@@ -67,6 +68,11 @@ class FTPDataField(XByteField):
         Field.__init__(self, name, default, "!B")
 
     def getfield(self, pkt, s):
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
         self.myresult = ""
         firstb = struct.unpack(self.fmt, s[0])[0]
         self.myresult = ""
@@ -78,7 +84,7 @@ class FTPDataField(XByteField):
             if len(byte) == 1:
                 byte = "0" + byte
             '''
-            self.myresult = self.myresult + c
+            self.myresult = self.myresult + byte
         if not is_created_session(pkt.underlayer.underlayer.fields["src"],
                                 pkt.underlayer.underlayer.fields["dst"],
                                 pkt.underlayer.fields["sport"]):
@@ -206,6 +212,11 @@ class FTPResField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
         remain = ""
         value = ""
         ls = s.split()
@@ -256,6 +267,11 @@ class FTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
         remain = ""
         value = ""
         ls = s.split()

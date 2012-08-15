@@ -2,7 +2,7 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import *
-# from dissector import dissector
+import dissector
 
 
 class POPField(StrField):
@@ -23,6 +23,11 @@ class POPField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
+        cstream = -1
+        if pkt.underlayer.name == "TCP":
+            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        if not cstream == -1:
+            s = cstream
         remain = ""
         value = ""
         ls = s.splitlines()
