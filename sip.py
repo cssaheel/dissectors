@@ -111,13 +111,13 @@ class SIPMsgField(StrField):
         self.myresult = ""
         for c in s:
             ustruct = struct.unpack(self.fmt, c)
-            byte = base64.standard_b64encode(str(ustruct[0]))
+            byte = base64.standard_b64encode(c)
             '''
             byte = str(hex(ustruct[0]))[2:]
             if len(byte) == 1:
                 byte = "0" + byte
             '''
-            self.myresult = self.myresult + c
+            self.myresult = self.myresult + byte
         return "", self.myresult
 
 

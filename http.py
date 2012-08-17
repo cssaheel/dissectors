@@ -1,4 +1,7 @@
 import base64
+import os
+import string
+import random
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
@@ -6,6 +9,40 @@ from scapy.layers.inet import *
 import dissector
 
 
+downloaded_files = []
+
+
+def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for x in range(size))
+
+
+def clean_file_name(name, path):
+    ls = list(name)
+    result = ""
+    length = len(ls)
+    files = os.listdir(path)
+    if len(name) > 25 or name in files or name == "NoName":
+        return name_generator()
+    i = 0
+    while i < length:
+        if not ls[i].isdigit() and not ls[i].isalpha and not ls[i] == ".":
+            del(ls[i])
+        else:
+            result = result + ls[i]
+        i = i + 1
+    if len(result) > 0:
+        return result
+    else:
+        return name_generator()
+
+def add_file(Src, Dst, SPort, DPort, name, seq):
+    downloaded_files.append((Src, Dst, SPort, DPort, name[1:], seq))
+
+def get_file(Src, Dst, SPort, DPort, ack):
+    for element in downloaded_files:
+        if  Src == element[1] and Dst == element[0] and SPort == element[3] and DPort == element[2] and ack == element[5]:
+            return element[4]
+    return "NoName"
 
 def int2bin(n, count=16):
     """returns the binary of integer n, using count number of digits"""
@@ -45,6 +82,8 @@ class HTTPReqField(StrField):
             if length == 3:
                 value = "Method:" + f[0] + ", Request-URI:" +\
         				f[1] + ", HTTP-Version:" + f[2]
+                if f[0].lower() == "get" or f[0].lower() == "post":
+                    add_file(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], f[1], pkt.underlayer.fields["seq"] + len(s))
                 ls.remove(ls[0])
                 for element in ls:
                     remain = remain + element
@@ -204,6 +243,19 @@ class HTTPMsgField(XByteField):
             s = s.lstrip("\r\n")
             if s == "":
                 return "", ""
+        name = get_file(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["ack"])
+        if pkt.underlayer.fields["sport"] == 80:
+            if not dissector.Dissector.default_download_folder_changed:
+                cwd = os.getcwd() + "/downloaded/"
+                try:
+                    os.mkdir("downloaded")
+                except:
+                    None
+                f = open(cwd + clean_file_name(name, cwd), "wb")
+            else:
+                f = open(dissector.Dissector.path + clean_file_name(name, dissector.Dissector.path), "wb")
+            f.write(s)
+            f.close()
         self.myresult = ""
         firstb = struct.unpack(self.fmt, s[0])[0]
         self.myresult = ""

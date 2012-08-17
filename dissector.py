@@ -48,6 +48,8 @@ from smtp import *
 from ssh import *
 from telnet import *
 
+
+
 def is_created_session(Src, Dst, SPort, DPort):
     """
     method returns true if the ssh session is exist
@@ -155,6 +157,14 @@ class Dissector(Packet):
     preprocess_sessions = []
     sessions = []
     preprocess_done = False
+    default_download_folder_changed = False
+    path = ""
+    
+    def change_dfolder(self, path):
+        dissector.Dissector.default_download_folder_changed = True
+        if not path[len(path) - 1] == "/" and not path[len(path) - 1] == "\\":
+            path = path + "/"
+        dissector.Dissector.path = path
     
     def recalculate_seq(self):
         i = 0

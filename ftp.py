@@ -1,9 +1,49 @@
 import base64
+import os
+import string
+import random
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import *
 import dissector
+
+
+last_file = "NoName"
+
+def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for x in range(size))
+
+
+def clean_file_name(name, path):
+    ls = list(name)
+    result = ""
+    length = len(ls)
+    files = os.listdir(path)
+    if len(name) > 25 or name in files or name == "NoName":
+        return name_generator()
+    i = 0
+    while i < length:
+        if not ls[i].isdigit() and not ls[i].isalpha and not ls[i] == ".":
+            del(ls[i])
+        else:
+            result = result + ls[i]
+        i = i + 1
+    if len(result) > 0:
+        return result
+    else:
+        return name_generator()
+
+def add_file(name):
+    global last_file
+    ls = []
+    if "/" in name:
+        ls = name.split("/")
+        if len(ls) > 0:
+            last_file = ls[len(ls) - 1]
+
+def get_file():
+    return last_file
 
 # list for maintaining  the ftp data sessions
 ftpdatasessions = []
@@ -73,6 +113,20 @@ class FTPDataField(XByteField):
             cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
+        if pkt.underlayer.name == "TCP" and cstream == -1 :
+            return "", ""
+        name = get_file()
+        if not dissector.Dissector.default_download_folder_changed:
+            cwd = os.getcwd() + "/downloaded/"
+            try:
+                os.mkdir("downloaded")
+            except:
+                None
+            f = open(cwd + clean_file_name(name, cwd), "wb")
+        else:
+            f = open(dissector.Dissector.path + clean_file_name(name, dissector.Dissector.path), "wb")
+        f.write(s)
+        f.close()
         self.myresult = ""
         firstb = struct.unpack(self.fmt, s[0])[0]
         self.myresult = ""
@@ -212,11 +266,6 @@ class FTPResField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        cstream = -1
-        if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
-        if not cstream == -1:
-            s = cstream
         remain = ""
         value = ""
         ls = s.split()
@@ -267,14 +316,17 @@ class FTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        cstream = -1
-        if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
-        if not cstream == -1:
-            s = cstream
         remain = ""
         value = ""
         ls = s.split()
+        if ls[0].lower() == "retr":
+            c = 1
+            file = ""
+            while c < len(ls):
+                file = file + ls[c]
+                c = c + 1
+            if len(file) > 0:
+                add_file(file)
         length = len(ls)
         if length > 1:
             value = ls[0]

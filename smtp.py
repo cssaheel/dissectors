@@ -1,4 +1,8 @@
 import base64
+import base64
+import os
+import string
+import random
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
@@ -6,9 +10,29 @@ from scapy.layers.inet import *
 import dissector
 
 
+def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for x in range(size))
+
+
+src = ""
+dst = ""
+sport = ""
+dport = ""
+seq = ""
+
 # holds smtp sessions
 bounded = []
 
+def get_tcp_ip():
+    return src, dst, sport, dport, seq
+
+def set_tcp_ip(srcp, dstp, sportp, dportp, seqp):
+    global src, dst, sport, dport, seq
+    src = srcp
+    dst = dstp
+    sport = sportp
+    dport = dportp
+    seq = seqp
 
 def bind(Src, Dst, Port):
     """
@@ -70,13 +94,28 @@ class SMTPDataField(XByteField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        '''
+        
+        src, dst, sport, dport, seq = get_tcp_ip()
+        
         cstream = -1
-        if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+        cstream = dissector.check_stream(src, dst, sport, dport, seq, s)
         if not cstream == -1:
             s = cstream
-        '''
+        if cstream == -1:
+            return "", ""
+
+        name = name_generator()
+        if not dissector.Dissector.default_download_folder_changed:
+            cwd = os.getcwd() + "/downloaded/"
+            try:
+                os.mkdir("downloaded")
+            except:
+                None
+            f = open(cwd + name, "wb")
+        else:
+            f = open(dissector.Dissector.path + name, "wb")
+        f.write(s)
+        f.close()
         self.myresult = ""
         firstb = struct.unpack(self.fmt, s[0])[0]
         self.myresult = ""
@@ -268,6 +307,9 @@ class SMTPReqField(StrField):
         if is_bounded(pkt.underlayer.underlayer.fields["src"],
                      pkt.underlayer.underlayer.fields["dst"],
                      pkt.underlayer.fields["sport"]):
+            set_tcp_ip(pkt.underlayer.underlayer.fields["src"],
+                     pkt.underlayer.underlayer.fields["dst"],
+                     pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"])
             smtpd = SMTPData(s).fields["data"]
             return "", ["DATA", smtpd]
 
@@ -305,6 +347,16 @@ class SMTPData(Packet):
     class for handling the smtp data
     @attention: this class inherets Packet
     """
+
+    '''
+    def __init__(self, src, dst, sport, dport, seq, s):
+        self.src = src
+        self.dst = dst
+        self.sport = sport
+        self.dport = dport
+        self.seq = seq
+        self.s = s
+    '''
     name = "smtp"
     fields_desc = [SMTPDataField("data", "")]
 

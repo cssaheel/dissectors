@@ -12,12 +12,6 @@ preprocess_sessions = []
 sessions = []
 
 def is_created_stream_session(Src, Dst, SPort, DPort):
-    """
-method returns true if the ssh session is exist
-@param Src: source ip address
-@param SPort: source port number
-@param DPort: destination port number
-"""
     i = 0
     while i < len(preprocess_sessions):
         if  Src == preprocess_sessions[i][0] and Dst == preprocess_sessions[i][1] and SPort == preprocess_sessions[i][2] and DPort == preprocess_sessions[i][3]:
@@ -26,13 +20,6 @@ method returns true if the ssh session is exist
     return False
 
 def create_stream_session(Src, Dst, SPort, DPort, stream):
-    """
-method for creating encypted ssh sessions
-@param Src: source ip address
-@param Dst: destination ip address
-@param SPort: source port number
-@param DPort: destination port number
-"""
     if stream.push:
         sessions.append([Src, Dst, SPort, DPort, stream])
     else:
