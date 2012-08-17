@@ -32,13 +32,17 @@ class TELNETField(XByteField):
         method returns a message for every a specific code number
         @param cn: code number
         """
-        codes = {0: "TRANSMIT-BINARY", 1: "ECHO", 3: "SUPPRESS-GO-AHEAD",
-                  5: "STATUS", 6: "TIMING-MARK", 7: "RCTE", 10: "NAOCRD",
-                  11: "NAOHTS", 12: "NAOHTD", 13: "NAOFFD", 14: "NAOVTS",
-                  15: "NAOVTD", 16: "NAOLFD", 17: "EXTEND-ASCII",
-				  18: "LOGOUT", 19: "BM", 20: "DET", 21: "SUPDUP",
-				  22: "SUPDUP-OUTPUT", 23: "SEND-LOCATION",
-				  24: "TERMINAL-TYPE", 25: "END-OF-RECORD",
+        codes = {0: "TRANSMIT-BINARY", 1: "ECHO",
+                  3: "SUPPRESS-GO-AHEAD",
+                  5: "STATUS", 6: "TIMING-MARK",
+                   7: "RCTE", 10: "NAOCRD",
+                  11: "NAOHTS", 12: "NAOHTD",
+                   13: "NAOFFD", 14: "NAOVTS",
+                  15: "NAOVTD", 16: "NAOLFD",
+                   17: "EXTEND-ASCII",
+                   18: "LOGOUT", 19: "BM", 20: "DET", 21: "SUPDUP",
+                   22: "SUPDUP-OUTPUT", 23: "SEND-LOCATION",
+                  24: "TERMINAL-TYPE", 25: "END-OF-RECORD",
                   26: "TUID", 27: "OUTMRK", 28: "TTYLOC", 29: "3270-REGIME",
                   30: "X.3-PAD", 31: "NAWS", 32: "TERMINAL-SPEED",
                   33: "TOGGLE-FLOW-CONTROL", 34: "LINEMODE",
@@ -68,7 +72,12 @@ class TELNETField(XByteField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+                    pkt.underlayer.underlayer.fields["src"],\
+                     pkt.underlayer.underlayer.fields["dst"],\
+                      pkt.underlayer.fields["sport"],\
+                       pkt.underlayer.fields["dport"],\
+                        pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         self.myresult = ""

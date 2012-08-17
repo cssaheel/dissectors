@@ -35,20 +35,26 @@ def clean_file_name(name, path):
     else:
         return name_generator()
 
+
 def add_file(Src, Dst, SPort, DPort, name, seq):
     downloaded_files.append((Src, Dst, SPort, DPort, name[1:], seq))
 
+
 def get_file(Src, Dst, SPort, DPort, ack):
     for element in downloaded_files:
-        if  Src == element[1] and Dst == element[0] and SPort == element[3] and DPort == element[2] and ack == element[5]:
+        if  Src == element[1] and Dst == element[0] and\
+         SPort == element[3] and DPort == element[2] and\
+          ack == element[5]:
             return element[4]
     return "NoName"
+
 
 def int2bin(n, count=16):
     """
     returns the binary of integer n, using count number of digits
     """
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
+
 
 class HTTPReqField(StrField):
     """
@@ -70,10 +76,14 @@ class HTTPReqField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"],\
+               pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
-        if pkt.underlayer.name == "TCP" and cstream == -1 :
+        if pkt.underlayer.name == "TCP" and cstream == -1:
             return "", ""
         remain = ""
         value = ""
@@ -83,9 +93,13 @@ class HTTPReqField(StrField):
             length = len(f)
             if length == 3:
                 value = "Method:" + f[0] + ", Request-URI:" +\
-        				f[1] + ", HTTP-Version:" + f[2]
+                        f[1] + ", HTTP-Version:" + f[2]
                 if f[0].lower() == "get" or f[0].lower() == "post":
-                    add_file(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], f[1], pkt.underlayer.fields["seq"] + len(s))
+                    add_file(pkt.underlayer.underlayer.fields["src"],\
+                              pkt.underlayer.underlayer.fields["dst"],\
+                               pkt.underlayer.fields["sport"],\
+                                pkt.underlayer.fields["dport"], f[1],\
+                                 pkt.underlayer.fields["seq"] + len(s))
                 ls.remove(ls[0])
                 for element in ls:
                     remain = remain + element
@@ -101,6 +115,7 @@ class HTTPResField(StrField):
     holds_packets = 1
     name = "HTTPResField"
     fin = False
+
     def get_code_msg(self, cn):
         """
         method returns the message for the http code number
@@ -174,24 +189,17 @@ class HTTPResField(StrField):
         @param s: holds only the remaining data which is not dissected yet.
         """
         seq = pkt.underlayer.fields["seq"]
-        '''
-        flags = None
-        flags_bits = list(int2bin(pkt.underlayer.fields["flags"]))
-        if flags_bits[11] == '1':
-            flags = 'A'
-        if flags_bits[12] == '1':
-            flags = flags + 'P'
-        if 'P' in flags:
-            push = True
-        else:
-            push = False
-        '''
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"],\
+                pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
-        if pkt.underlayer.name == "TCP" and cstream == -1 :
+        if pkt.underlayer.name == "TCP" and cstream == -1:
             return "", ""
         remain = ""
         value = ""
@@ -201,7 +209,7 @@ class HTTPResField(StrField):
             length = len(f)
             if length == 3:
                 value = "HTTP-Version:" + f[0] + ", Status-Code:" +\
-        				f[1] + ", Reason-Phrase:" + f[2]
+                        f[1] + ", Reason-Phrase:" + f[2]
                 ls.remove(ls[0])
                 for element in ls:
                     remain = remain + element
@@ -230,7 +238,6 @@ class HTTPMsgField(XByteField):
         self.fmt = "!B"
         Field.__init__(self, name, default, "!B")
 
-
     def getfield(self, pkt, s):
         """
         this method will get the packet, takes what does need to be
@@ -245,7 +252,11 @@ class HTTPMsgField(XByteField):
             s = s.lstrip("\r\n")
             if s == "":
                 return "", ""
-        name = get_file(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["ack"])
+        name = get_file(pkt.underlayer.underlayer.fields["src"],\
+                         pkt.underlayer.underlayer.fields["dst"],\
+                          pkt.underlayer.fields["sport"],\
+                           pkt.underlayer.fields["dport"],\
+                            pkt.underlayer.fields["ack"])
         if pkt.underlayer.fields["sport"] == 80:
             if not dissector.Dissector.default_download_folder_changed:
                 cwd = os.getcwd() + "/downloaded/"
@@ -255,7 +266,8 @@ class HTTPMsgField(XByteField):
                     None
                 f = open(cwd + clean_file_name(name, cwd), "wb")
             else:
-                f = open(dissector.Dissector.path + clean_file_name(name, dissector.Dissector.path), "wb")
+                f = open(dissector.Dissector.path +\
+                 clean_file_name(name, dissector.Dissector.path), "wb")
             f.write(s)
             f.close()
         self.myresult = ""
@@ -264,7 +276,7 @@ class HTTPMsgField(XByteField):
 
         if self.myresult[-1:] == " ":
             self.myresult = self.myresult.rstrip()
-        return "",  self.myresult
+        return "", self.myresult
 
 
 class HTTPField(StrField):

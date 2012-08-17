@@ -25,7 +25,12 @@ class IRCResField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+                        pkt.underlayer.underlayer.fields["src"],\
+                         pkt.underlayer.underlayer.fields["dst"],\
+                          pkt.underlayer.fields["sport"],\
+                           pkt.underlayer.fields["dport"],\
+                            pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         value = ""
@@ -80,7 +85,12 @@ class IRCReqField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+                        pkt.underlayer.underlayer.fields["src"],\
+                         pkt.underlayer.underlayer.fields["dst"],\
+                          pkt.underlayer.fields["sport"],\
+                           pkt.underlayer.fields["dport"],\
+                            pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         remain = ""

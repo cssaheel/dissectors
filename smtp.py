@@ -23,8 +23,10 @@ seq = ""
 # holds smtp sessions
 bounded = []
 
+
 def get_tcp_ip():
     return src, dst, sport, dport, seq
+
 
 def set_tcp_ip(srcp, dstp, sportp, dportp, seqp):
     global src, dst, sport, dport, seq
@@ -33,6 +35,7 @@ def set_tcp_ip(srcp, dstp, sportp, dportp, seqp):
     sport = sportp
     dport = dportp
     seq = seqp
+
 
 def bind(Src, Dst, Port):
     """
@@ -94,9 +97,9 @@ class SMTPDataField(XByteField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        
+
         src, dst, sport, dport, seq = get_tcp_ip()
-        
+
         cstream = -1
         cstream = dissector.check_stream(src, dst, sport, dport, seq, s)
         if not cstream == -1:
@@ -200,7 +203,12 @@ class SMTPResField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"],\
+                pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         remain = ""
@@ -274,7 +282,12 @@ class SMTPReqField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"],\
+                pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         remain = ""
@@ -296,7 +309,9 @@ class SMTPReqField(StrField):
                      pkt.underlayer.fields["sport"]):
             set_tcp_ip(pkt.underlayer.underlayer.fields["src"],
                      pkt.underlayer.underlayer.fields["dst"],
-                     pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"])
+                     pkt.underlayer.fields["sport"],\
+                      pkt.underlayer.fields["dport"],\
+                       pkt.underlayer.fields["seq"])
             smtpd = SMTPData(s).fields["data"]
             return "", ["DATA", smtpd]
 

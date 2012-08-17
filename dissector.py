@@ -49,7 +49,6 @@ from ssh import *
 from telnet import *
 
 
-
 def is_created_session(Src, Dst, SPort, DPort):
     """
     method returns true if the ssh session is exist
@@ -60,43 +59,63 @@ def is_created_session(Src, Dst, SPort, DPort):
     """
     i = 0
     while i < len(dissector.Dissector.preprocess_sessions):
-        if  Src == dissector.Dissector.preprocess_sessions[i][0] and Dst == dissector.Dissector.preprocess_sessions[i][1] and SPort == dissector.Dissector.preprocess_sessions[i][2] and DPort == dissector.Dissector.preprocess_sessions[i][3]:
+        if  Src == dissector.Dissector.preprocess_sessions[i][0]\
+         and Dst == dissector.Dissector.preprocess_sessions[i][1]\
+          and SPort == dissector.Dissector.preprocess_sessions[i][2]\
+           and DPort == dissector.Dissector.preprocess_sessions[i][3]:
             return True
         i = i + 1
     return False
 
+
 def create_session(Src, Dst, SPort, DPort, expected_seq):
     if not is_created_session(Src, Dst, SPort, DPort):
-        dissector.Dissector.preprocess_sessions.append([Src, Dst, SPort, DPort, expected_seq])
-        
+        dissector.Dissector.preprocess_sessions.append(\
+        [Src, Dst, SPort, DPort, expected_seq])
+
+
 def build_stream(Src, Dst, SPort, DPort, stream):
     i = 0
     while i < len(dissector.Dissector.preprocess_sessions):
-        if  Src == dissector.Dissector.preprocess_sessions[i][0] and Dst == dissector.Dissector.preprocess_sessions[i][1] and SPort == dissector.Dissector.preprocess_sessions[i][2] and DPort == dissector.Dissector.preprocess_sessions[i][3]:
-            dissector.Dissector.preprocess_sessions[i][4] = dissector.Dissector.preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)
+        if  Src == dissector.Dissector.preprocess_sessions[i][0]\
+         and Dst == dissector.Dissector.preprocess_sessions[i][1] and\
+          SPort == dissector.Dissector.preprocess_sessions[i][2] and\
+           DPort == dissector.Dissector.preprocess_sessions[i][3]:
+            dissector.Dissector.preprocess_sessions[i][4] =\
+             dissector.Dissector.preprocess_sessions[i][4].append_data(\
+            Src, Dst, SPort, DPort, stream)
             break
         i = i + 1
+
 
 def get_stream(Src, Dst, SPort, DPort, obj):
     i = 0
     while i < len(dissector.Dissector.sessions):
-        if  Src == dissector.Dissector.sessions[i][0] and Dst == dissector.Dissector.sessions[i][1] and SPort == dissector.Dissector.sessions[i][2] and DPort == dissector.Dissector.preprocess_sessions[i][3]:
+        if  Src == dissector.Dissector.sessions[i][0] and\
+         Dst == dissector.Dissector.sessions[i][1] and\
+          SPort == dissector.Dissector.sessions[i][2] and\
+           DPort == dissector.Dissector.preprocess_sessions[i][3]:
             if dissector.Dissector.sessions[i][4].seq == obj.seq:
                 return dissector.Dissector.sessions[i][4].pkt
         i = i + 1
     return -1
 
+
 def is_stream_end(Src, Dst, SPort, DPort, obj):
     i = 0
     while i < len(dissector.Dissector.sessions):
-        if  Src == dissector.Dissector.sessions[i][0] and Dst == dissector.Dissector.sessions[i][1] and SPort == dissector.Dissector.sessions[i][2] and DPort == dissector.Dissector.sessions[i][3]:
+        if  Src == dissector.Dissector.sessions[i][0] and\
+         Dst == dissector.Dissector.sessions[i][1] and\
+          SPort == dissector.Dissector.sessions[i][2] and\
+           DPort == dissector.Dissector.sessions[i][3]:
             if dissector.Dissector.sessions[i][4].seq == obj.seq:
                 return True
         i = i + 1
     return False
 
+
 def check_stream(Src, Dst, SPort, DPort, Seq, s):
-    if not dissector.is_created_session(Src, Dst, SPort, DPort) :
+    if not dissector.is_created_session(Src, Dst, SPort, DPort):
         seqn = Seq
         stream = dissector.Stream(s, seqn)
         dissector.create_session(Src, Dst, SPort, DPort, stream)
@@ -117,12 +136,13 @@ class Stream:
     seq = -1
     length_of_last_packet = -1
     stream = False
+
     def __init__(self, pkt, seq):
         self.stream = False
         self.pkt = pkt
         self.seq = seq
         self.length_of_last_packet = len(pkt)
-            
+
     def append_data(self, Src, Dst, SPort, DPort, obj):
         if self.seq + self.length_of_last_packet == obj.seq:
             self.stream = True
@@ -133,13 +153,15 @@ class Stream:
 
     def append_packet(self, pkt):
         self.pkt = self.pkt + pkt
-    
+
     def change_seq(self, seq):
         self.seq = seq
+
 
 def int2bin(n, count=16):
     """returns the binary of integer n, using count number of digits"""
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
+
 
 class Dissector(Packet):
     """
@@ -158,17 +180,18 @@ class Dissector(Packet):
     preprocess_done = False
     default_download_folder_changed = False
     path = ""
-    
+
     def change_dfolder(self, path):
         dissector.Dissector.default_download_folder_changed = True
         if not path[len(path) - 1] == "/" and not path[len(path) - 1] == "\\":
             path = path + "/"
         dissector.Dissector.path = path
-    
+
     def recalculate_seq(self):
         i = 0
         while i < len(dissector.Dissector.sessions):
-            Dissector.sessions[i][4].seq = Dissector.sessions[i][4].seq - Dissector.sessions[i][4].length_of_last_packet
+            Dissector.sessions[i][4].seq = Dissector.sessions[i][4].seq -\
+             Dissector.sessions[i][4].length_of_last_packet
             i = i + 1
 
     def get_ascii(self, hexstr):
@@ -179,10 +202,22 @@ class Dissector(Packet):
         return binascii.unhexlify(hexstr)
 
     def defined_protocol(self, name):
-        if name.startswith("tcp") and name.endswith("tcp") or name.startswith("udp") and name.endswith("udp") or name.startswith("icmp") and name.endswith("icmp") or name.startswith("dns") and name.endswith("dns") or name.startswith("http") and name.endswith("http") or name.startswith("ftp") and name.endswith("ftp") or name.startswith("irc") and name.endswith("irc") or name.startswith("smb") and name.endswith("smb") or name.startswith("sip") and name.endswith("sip") or name.startswith("telnet") and name.endswith("telnet") or name.startswith("smtp") or name.startswith("ssh") or name.startswith("imap") and name.endswith("imap") or name.startswith("pop") and name.endswith("pop"):
+        if name.startswith("tcp") and name.endswith("tcp") or\
+         name.startswith("udp") and name.endswith("udp") or\
+          name.startswith("icmp") and name.endswith("icmp") or\
+           name.startswith("dns") and name.endswith("dns") or\
+            name.startswith("http") and name.endswith("http") or\
+             name.startswith("ftp") and name.endswith("ftp") or\
+              name.startswith("irc") and name.endswith("irc") or\
+               name.startswith("smb") and name.endswith("smb") or\
+                name.startswith("sip") and name.endswith("sip") or\
+                 name.startswith("telnet") and name.endswith("telnet") or\
+                  name.startswith("smtp") or name.startswith("ssh") or\
+                   name.startswith("imap") and name.endswith("imap") or\
+                    name.startswith("pop") and name.endswith("pop"):
             return True
 
-    def clean_out(self,value):
+    def clean_out(self, value):
         value = value.rstrip()
         value = value.lstrip()
         if value.startswith("'") and value.endswith("'"):
@@ -218,18 +253,20 @@ class Dissector(Packet):
                 flds.append((ncol(f.name), vcol(f.i2repr(self, fvalue))))
         return flds
 
-    def is_printable(self,f):
-        if isinstance(f, tuple) and not f[1] == "''" and not f[1] == '' and not f[1] == "" and not f[1] == [] and not f[1] == '[]' and not f[1] == "[]" and len(f[1]) > 0:
+    def is_printable(self, f):
+        if isinstance(f, tuple) and not f[1] == "''" and not\
+         f[1] == '' and not f[1] == "" and not f[1] == [] and not\
+          f[1] == '[]' and not f[1] == "[]" and len(f[1]) > 0:
             return True
         return False
 
     def __getattr__(self, attr):
         if self.initialized:
-            fld,v = self.getfield_and_val(attr)
+            fld, v = self.getfield_and_val(attr)
             if fld is not None:
                 return fld.i2h(self, v)
             return v
-        
+
     def seq_analysis(self, pcapfile):
         """
         this method act as an interface for the dissect() method.
@@ -253,13 +290,12 @@ class Dissector(Packet):
                 while load.payload:
                     load = load.payload
                     self.packet = load
-                    
+
                     fields = self.dissect(self.packet)
 
                     if fields[0]:
                         if fields[0] == "NoPayload":
                             break
-
 
     def dissect_pkts(self, pcapfile):
         """
@@ -290,7 +326,7 @@ class Dissector(Packet):
                         if self.is_printable(fields[j]):
                             entry[fields[j][0]] = fields[j][1]
                         j = j + 1
-                    
+
                     i = 0
                     while i < len(protocols):
                         if fields[0] in protocols[i]:
@@ -310,7 +346,7 @@ class Dissector(Packet):
                 while load.payload:
                     load = load.payload
                     self.packet = load
-                    
+
                     fields = self.dissect(self.packet)
 
                     entry = {}
@@ -346,7 +382,7 @@ class Dissector(Packet):
                                 pname = None
                                 found = False
                                 entry = []
-                                if load.fields["qd"] :
+                                if load.fields["qd"]:
                                     for element in fields:
                                         if "qd" in element:
                                             qdfield = element[1]
@@ -360,7 +396,8 @@ class Dissector(Packet):
                                                 found = True
                                                 type = t[6:]
                                         if found:
-                                            entry.append({"name": name, "type": type})
+                                            entry.append(\
+                                            {"name": name, "type": type})
                                             found = False
 
                                     if qdfield.count("|") > 1:
@@ -376,10 +413,11 @@ class Dissector(Packet):
                                                     found = True
                                                     type = t[6:]
                                             if found:
-                                                entry.append({"name": name, "type": type})
+                                                entry.append(\
+                                                {"name": name, "type": type})
                                                 found = False
 
-                                if load.fields["an"] :
+                                if load.fields["an"]:
                                     for element in fields:
                                         if "an" in element:
                                             anfield = element[1]
@@ -397,7 +435,8 @@ class Dissector(Packet):
                                                 found = True
                                                 pname = t[6:]
                                         if found:
-                                            entry.append({"name": name, "type": type, "pname": pname})
+                                            entry.append(\
+                                {"name": name, "type": type, "pname": pname})
                                             found = False
                                     if anfield.count("|") > 1:
                                         alist = anfield.split(" |")
@@ -414,76 +453,106 @@ class Dissector(Packet):
                                                     found = True
                                                     pname = t[6:]
                                             if found:
-                                                entry.append({"name": name[1:-2], "type": type, "pname": pname[1:-1]})
+                                                entry.append(\
+                    {"name": name[1:-2], "type": type, "pname": pname[1:-1]})
                                                 found = False
-                            
-                            if isinstance(fields[0], str) and fields[0].startswith("http"):
-                                recognized = True
-                                if isinstance(fields[j][1], str):
-                                    if first and not fields[j][0][:-2] == "unknown-header(s)" and not fields[j][0][:-2] == "message-body":
-                                        entry[fields[j][0][:-2]] = self.clean_out(fields[j][1][len(fields[j][0]) + 1:-1])
-                                    elif first and fields[j][0][:-2] == "unknown-header(s)":
-                                        entry[fields[j][0][:-2]] = self.clean_out(fields[j][1])
-                                    elif first and fields[j][0][:-2] == "message-body":
-                                        entry[fields[j][0][:-2]] = fields[j][1]
-                                    else:
-                                        entry[fields[j][0]] = self.clean_out(fields[j][1])
 
                             if isinstance(fields[0], str) and\
-							fields[0].startswith("sip"):
+                             fields[0].startswith("http"):
                                 recognized = True
                                 if isinstance(fields[j][1], str):
-                                    if first and not fields[j][0][:-2] == "unknown-header(s)" and not fields[j][0][:-2] == "message-body":
-                                        entry[fields[j][0][:-2]] = self.clean_out(fields[j][1][len(fields[j][0]) + 1:-1])
-                                    elif first and fields[j][0][:-2] == "unknown-header(s)":
-                                        entry[fields[j][0][:-2]] = self.clean_out(fields[j][1])
-                                    elif first and fields[j][0][:-2] == "message-body":
-                                        entry[fields[j][0][:-2]] = fields[j][1][1:-1]
+                                    if first and not fields[j][0][:-2] ==\
+                                     "unknown-header(s)" and\
+                                      not fields[j][0][:-2] == "message-body":
+                                        entry[fields[j][0][:-2]] =\
+                         self.clean_out(fields[j][1][len(fields[j][0]) + 1:-1])
+                                    elif first and fields[j][0][:-2] ==\
+                                     "unknown-header(s)":
+                                        entry[fields[j][0][:-2]] =\
+                                         self.clean_out(fields[j][1])
+                                    elif first and fields[j][0][:-2] ==\
+                                     "message-body":
+                                        entry[fields[j][0][:-2]] = fields[j][1]
+                                    else:
+                                        entry[fields[j][0]] =\
+                                         self.clean_out(fields[j][1])
+
+                            if isinstance(fields[0], str) and\
+                            fields[0].startswith("sip"):
+                                recognized = True
+                                if isinstance(fields[j][1], str):
+                                    if first and not fields[j][0][:-2] ==\
+                                     "unknown-header(s)" and not\
+                                      fields[j][0][:-2] == "message-body":
+                                        entry[fields[j][0][:-2]] =\
+                        self.clean_out(fields[j][1][len(fields[j][0]) + 1:-1])
+                                    elif first and fields[j][0][:-2] ==\
+                                     "unknown-header(s)":
+                                        entry[fields[j][0][:-2]] =\
+                                         self.clean_out(fields[j][1])
+                                    elif first and fields[j][0][:-2] ==\
+                                     "message-body":
+                                        entry[fields[j][0][:-2]] =\
+                                         fields[j][1][1:-1]
                                 else:
-                                    entry[fields[j][0]] = self.clean_out(self.clean_out(fields[j][1]))
-                            
+                                    entry[fields[j][0]] = self.clean_out(\
+                                    self.clean_out(fields[j][1]))
+
                             if isinstance(fields[0], str) and\
                             fields[0].startswith("smtp"):
                                 recognized = True
-                                if fields[j][0].startswith("command") and fields[j][1].startswith("['DATA', '") and fields[j][1].endswith("']"):
+                                if fields[j][0].startswith("command") and\
+                                 fields[j][1].startswith("['DATA', '") and\
+                                  fields[j][1].endswith("']"):
 
                                     entry["data"] = fields[j][1][10:-2]
                                     entry["type"] = "data"
-                                elif fields[j][0].startswith("response") and fields[j][0].endswith("response"):
+                                elif fields[j][0].startswith("response") and\
+                                 fields[j][0].endswith("response"):
                                     result = fields[j][1]
-                                    result = "[" + result[1:-1].replace("'", '"') + "]"
+                                    result = "[" +\
+                                     result[1:-1].replace("'", '"') + "]"
                                     try:
                                         result = json.loads(result)
                                     except Exception:
                                         None
                                     entry[fields[j][0]] = result
                                     entry["type"] = "response"
-                                elif fields[j][0].startswith("command") or fields[j][0].startswith("argument"):
+                                elif fields[j][0].startswith("command") or\
+                                 fields[j][0].startswith("argument"):
                                     if isinstance(entry, dict):
-                                        entry[fields[j][0]] = fields[j][1][1:-1]
+                                        entry[fields[j][0]] =\
+                                         fields[j][1][1:-1]
                                         if not "type" in entry:
                                             entry["type"] = "request"
                                         if j == len(fields) - 1:
                                             temp = ""
                                             if entry["type"] == "request":
                                                 if "command" in entry:
-                                                    temp = "command: " + entry["command"]
-                                                    if entry["command"] == "DATA":
+                                                    temp = "command: " +\
+                                                     entry["command"]
+                                                    if entry["command"] ==\
+                                                     "DATA":
                                                         None
                                                 if "argument" in entry:
-                                                    temp = temp + ", argument: " + entry["argument"]
+                                                    temp = temp +\
+                                         ", argument: " + entry["argument"]
                                                 if "type" in entry:
-                                                    temp = temp + ", type: " + entry["type"]
+                                                    temp = temp +\
+                                                     ", type: " + entry["type"]
                                                 entry = temp
                                     elif isinstance(entry, str):
                                         if len(entry) > 0:
-                                            entry = entry + ", " + fields[j][0] + ": " + fields[j][1][1:-1]
+                                            entry = entry + ", " +\
+                                     fields[j][0] + ": " + fields[j][1][1:-1]
                                         else:
-                                            entry = fields[j][0] + ": " + fields[j][1][1:-1]
+                                            entry = fields[j][0] + ": " +\
+                                             fields[j][1][1:-1]
                                         if j == len(fields) - 1:
                                             entry = entry + ", type: request"
                                         else:
-                                            entry = entry + fields[j][0] + ": " + fields[j][1][1:-1]
+                                            entry = entry + fields[j][0] +\
+                                             ": " + fields[j][1][1:-1]
                                         if j == len(fields) - 1:
                                             entry = entry + ", type: request"
 
@@ -493,42 +562,51 @@ class Dissector(Packet):
                                 if isinstance(entry, dict):
                                     entry = ""
                                 if len(entry) > 0:
-                                    entry = entry + ", " + fields[j][0] + ": " + self.clean_out(fields[j][1][1:-1])
+                                    entry = entry + ", " +\
+             fields[j][0] + ": " + self.clean_out(fields[j][1][1:-1])
                                 else:
-                                    entry = entry + fields[j][0] + ": " + self.clean_out(fields[j][1][1:-1])
-                                if j == len(fields) - 1 and pkt.payload.payload.fields["sport"] == 21 or pkt.payload.payload.fields["sport"] == 20:
+                                    entry = entry + fields[j][0] +\
+                                     ": " + self.clean_out(fields[j][1][1:-1])
+                                if j == len(fields) - 1 and\
+                                 pkt.payload.payload.fields["sport"] == 21 or\
+                                  pkt.payload.payload.fields["sport"] == 20:
                                     entry = entry + ", type: response"
-                                elif j == len(fields) - 1 and pkt.payload.payload.fields["dport"] == 21 or pkt.payload.payload.fields["dport"] == 20:
+                                elif j == len(fields) - 1 and\
+                                 pkt.payload.payload.fields["dport"] == 21 or\
+                                  pkt.payload.payload.fields["dport"] == 20:
                                     entry = entry + ", type: request"
                             if isinstance(fields[0], str) and\
-							fields[0].startswith("imap"):
+                            fields[0].startswith("imap"):
                                 recognized = True
                                 entry = entry + fields[j][1] + " "
                             if isinstance(fields[0], str) and\
-							fields[0].startswith("pop"):
+                             fields[0].startswith("pop"):
                                 recognized = True
                                 entry = entry + fields[j][1] + " "
                             if isinstance(fields[0], str) and\
-							 fields[0].startswith("irc"):
+                             fields[0].startswith("irc"):
                                 recognized = True
                                 entry = fields[j][1][1:-1]
-                                
+
                             if isinstance(fields[0], str) and\
                              fields[0].startswith("telnet"):
                                 recognized = True
                                 entry = fields[j][1][:-1]
-                            
+
                             if isinstance(fields[0], str) and\
                              fields[0].startswith("ssh"):
                                 recognized = True
                                 entry = fields[j][1]
-                                if j == len(fields) - 1 and pkt.payload.payload.fields["sport"] == 22:
+                                if j == len(fields) - 1 and\
+                                 pkt.payload.payload.fields["sport"] == 22:
                                     entry = entry + ", type: response"
-                                elif j == len(fields) - 1 and pkt.payload.payload.fields["dport"] == 22:
+                                elif j == len(fields) - 1 and\
+                                 pkt.payload.payload.fields["dport"] == 22:
                                     entry = entry + ", type: request"
 
                             if not recognized:
-                                entry[fields[j][0]] = self.clean_out(fields[j][1])
+                                entry[fields[j][0]] =\
+                                 self.clean_out(fields[j][1])
                             recognized = False
                         j = j + 1
 
@@ -554,7 +632,7 @@ class Dissector(Packet):
         i = 0
         for proto in protocols:
             if self.defined_protocol(proto[0].lower()):
-                
+
                 dproto[proto[0].lower()] = proto[1:]
 
         return dproto

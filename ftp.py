@@ -11,6 +11,7 @@ import dissector
 
 last_file = "NoName"
 
+
 def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for x in range(size))
 
@@ -34,6 +35,7 @@ def clean_file_name(name, path):
     else:
         return name_generator()
 
+
 def add_file(name):
     global last_file
     ls = []
@@ -41,6 +43,7 @@ def add_file(name):
         ls = name.split("/")
         if len(ls) > 0:
             last_file = ls[len(ls) - 1]
+
 
 def get_file():
     return last_file
@@ -110,10 +113,15 @@ class FTPDataField(XByteField):
     def getfield(self, pkt, s):
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"],\
+                pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
-        if pkt.underlayer.name == "TCP" and cstream == -1 :
+        if pkt.underlayer.name == "TCP" and cstream == -1:
             return "", ""
         name = get_file()
         if not dissector.Dissector.default_download_folder_changed:
@@ -124,7 +132,8 @@ class FTPDataField(XByteField):
                 None
             f = open(cwd + clean_file_name(name, cwd), "wb")
         else:
-            f = open(dissector.Dissector.path + clean_file_name(name, dissector.Dissector.path), "wb")
+            f = open(dissector.Dissector.path +\
+             clean_file_name(name, dissector.Dissector.path), "wb")
         f.write(s)
         f.close()
         self.myresult = ""

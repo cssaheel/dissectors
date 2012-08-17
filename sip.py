@@ -27,7 +27,12 @@ class SIPStartField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"],\
+                pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         remain = ""
@@ -41,7 +46,7 @@ class SIPStartField(StrField):
             value = ""
             if length == 3:
                 value = "SIP-Version:" + f[0] + ", Status-Code:" +\
-				f[1] + ", Reason-Phrase:" + f[2]
+                f[1] + ", Reason-Phrase:" + f[2]
                 ls.remove(ls[0])
                 for element in ls:
                     remain = remain + element
@@ -58,7 +63,7 @@ class SIPStartField(StrField):
             value = []
             if length == 3:
                 value = "Method:" + f[0] + ", Request-URI:" +\
-				f[1] + ", SIP-Version:" + f[2]
+                f[1] + ", SIP-Version:" + f[2]
                 ls.remove(ls[0])
                 for element in ls:
                     remain = remain + element

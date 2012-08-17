@@ -25,7 +25,12 @@ class IMAPField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+                        pkt.underlayer.underlayer.fields["src"],\
+                         pkt.underlayer.underlayer.fields["dst"],\
+                          pkt.underlayer.fields["sport"],\
+                           pkt.underlayer.fields["dport"],\
+                            pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         remain = ""
@@ -48,12 +53,12 @@ class IMAPField(StrField):
                     c = c + 1
                 if self.name.startswith("request"):
                     myresult = myresult + "Request Tag: " +\
-        					value + ", Request Argument: " + remain
+                            value + ", Request Argument: " + remain
                     if k < lslen:
                         myresult = myresult + " | "
                 if self.name.startswith("response"):
                     myresult = myresult + "Response Tag: " +\
-					value + ", Response Argument: " + remain
+                    value + ", Response Argument: " + remain
                     if k < lslen:
                         myresult = myresult + " | "
             i = i + 1

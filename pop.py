@@ -25,7 +25,12 @@ class POPField(StrField):
         """
         cstream = -1
         if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
+            cstream = dissector.check_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"],\
+                pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
         remain = ""
@@ -48,12 +53,12 @@ class POPField(StrField):
                     c = c + 1
                 if self.name.startswith("request"):
                     myresult = myresult + "Request Command: " + value +\
-					", Request Parameter(s): " + remain
+                    ", Request Parameter(s): " + remain
                     if k < lslen:
                         myresult = myresult + " | "
                 if self.name.startswith("response"):
                     myresult = myresult + "Response Indicator: " + value +\
-					", Response Parameter(s): " + remain
+                    ", Response Parameter(s): " + remain
                     if k < lslen:
                         myresult = myresult + " | "
             i = i + 1

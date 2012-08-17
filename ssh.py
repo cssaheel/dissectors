@@ -11,13 +11,18 @@ import dissector
 preprocess_sessions = []
 sessions = []
 
+
 def is_created_stream_session(Src, Dst, SPort, DPort):
     i = 0
     while i < len(preprocess_sessions):
-        if  Src == preprocess_sessions[i][0] and Dst == preprocess_sessions[i][1] and SPort == preprocess_sessions[i][2] and DPort == preprocess_sessions[i][3]:
+        if  Src == preprocess_sessions[i][0] and\
+         Dst == preprocess_sessions[i][1] and\
+          SPort == preprocess_sessions[i][2] and\
+           DPort == preprocess_sessions[i][3]:
             return True
         i = i + 1
     return False
+
 
 def create_stream_session(Src, Dst, SPort, DPort, stream):
     if stream.push:
@@ -25,35 +30,48 @@ def create_stream_session(Src, Dst, SPort, DPort, stream):
     else:
         preprocess_sessions.append([Src, Dst, SPort, DPort, stream])
 
+
 def build_stream(Src, Dst, SPort, DPort, stream):
     i = 0
     while i < len(preprocess_sessions):
-        if  Src == preprocess_sessions[i][0] and Dst == preprocess_sessions[i][1] and SPort == preprocess_sessions[i][2] and DPort == preprocess_sessions[i][3]:
+        if  Src == preprocess_sessions[i][0] and\
+         Dst == preprocess_sessions[i][1] and\
+          SPort == preprocess_sessions[i][2] and\
+           DPort == preprocess_sessions[i][3]:
             if not stream.push:
-                preprocess_sessions[i][4] = preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)
+                preprocess_sessions[i][4] =\
+             preprocess_sessions[i][4].append_data(\
+                Src, Dst, SPort, DPort, stream)
             else:
-                sessions.append([Src, Dst, SPort, DPort, preprocess_sessions[i][4].append_data(Src, Dst, SPort, DPort, stream)])
+                sessions.append(\
+    [Src, Dst, SPort, DPort, preprocess_sessions[i][4].append_data(\
+                Src, Dst, SPort, DPort, stream)])
                 del(preprocess_sessions[i])
             break
         i = i + 1
 
+
 def get_stream(Src, Dst, SPort, DPort, obj):
     i = 0
     while i < len(sessions):
-        if Src == sessions[i][0] and Dst == sessions[i][1] and SPort == sessions[i][2] and DPort == sessions[i][3]:
+        if Src == sessions[i][0] and Dst == sessions[i][1] and\
+         SPort == sessions[i][2] and DPort == sessions[i][3]:
             if sessions[i][4].seq == obj.seq:
                 return sessions[i][4].pkt
         i = i + 1
     return -1
 
+
 def is_stream_end(Src, Dst, SPort, DPort, obj):
     i = 0
     while i < len(sessions):
-        if  Src == sessions[i][0] and Dst == sessions[i][1] and SPort == sessions[i][2] and DPort == sessions[i][3]:
+        if  Src == sessions[i][0] and Dst == sessions[i][1] and\
+         SPort == sessions[i][2] and DPort == sessions[i][3]:
             if sessions[i][4].seq == obj.seq:
                 return True
         i = i + 1
     return False
+
 
 class Stream:
     pkt = ""
@@ -61,14 +79,14 @@ class Stream:
     push = None
     length_of_last_packet = -1
     stream = False
+
     def __init__(self, pkt, push, seq):
         self.stream = False
         self.pkt = pkt
         self.push = push
         self.seq = seq
         self.length_of_last_packet = len(pkt)
-        
-            
+
     def append_data(self, Src, Dst, SPort, DPort, obj):
         if self.seq + self.length_of_last_packet == obj.seq and obj.push:
             self.stream = True
@@ -84,11 +102,11 @@ class Stream:
 
     def append_packet(self, pkt):
         self.pkt = self.pkt + pkt
-    
+
     def change_seq(self, seq):
         self.seq = seq
 
-    
+
 def int2bin(n, count=16):
     """
     returns the binary of integer n, using count number of digits
@@ -298,21 +316,44 @@ class SSHField(XByteField):
             push = True
         else:
             push = False
-            
-        if not is_created_stream_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]) :
+
+        if not is_created_stream_session(\
+        pkt.underlayer.underlayer.fields["src"],\
+         pkt.underlayer.underlayer.fields["dst"],\
+          pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]):
             seqn = pkt.underlayer.fields["seq"]
             stream = Stream(s, push, seqn)
-            create_stream_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        elif  is_created_stream_session(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"]):
+            create_stream_session(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"], stream)
+        elif is_created_stream_session(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"]):
             seqn = pkt.underlayer.fields["seq"]
             stream = Stream(s, push, seqn)
-            build_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
-        
+            build_stream(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"], stream)
+
         if not dissector.Dissector.preprocess_done:
             return "", ""
         if len(sessions) > 0:
-            if is_stream_end(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream):
-                ss = get_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], stream)
+            if is_stream_end(\
+            pkt.underlayer.underlayer.fields["src"],\
+             pkt.underlayer.underlayer.fields["dst"],\
+              pkt.underlayer.fields["sport"],\
+               pkt.underlayer.fields["dport"], stream):
+                ss = get_stream(\
+                pkt.underlayer.underlayer.fields["src"],\
+                 pkt.underlayer.underlayer.fields["dst"],\
+                  pkt.underlayer.fields["sport"],\
+                   pkt.underlayer.fields["dport"], stream)
             if not ss == -1:
                 s = ss
             else:
@@ -329,10 +370,11 @@ class SSHField(XByteField):
             self.myresult = self.myresult + byte
 
         if not s.startswith("SSH") and len(self.myresult) > 12:
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"]):
+            if not is_encrypted_session(\
+            pkt.underlayer.underlayer.fields["src"],\
+            pkt.underlayer.underlayer.fields["dst"],\
+            pkt.underlayer.fields["sport"],\
+            pkt.underlayer.fields["dport"]):
                 pakl = str(int(self.myresult[:8], 16))
                 padl = str(int(self.myresult[8:10], 16))
                 payloadl = int(pakl) - int(padl) - 1
@@ -352,13 +394,15 @@ class SSHField(XByteField):
                                     pkt.underlayer.underlayer.fields["dst"],
                                     pkt.underlayer.fields["sport"],
                                     pkt.underlayer.fields["dport"]):
-                    encrypted_payload = base64.standard_b64encode(self.get_ascii(self.myresult[:\
+                    encrypted_payload = base64.standard_b64encode(\
+                            self.get_ascii(self.myresult[:\
                     get_mac_length(pkt.underlayer.underlayer.fields["src"],
                                  pkt.underlayer.underlayer.fields["dst"],
                                  pkt.underlayer.fields["sport"],
                                  pkt.underlayer.fields["dport"]) * 2]))
                 else:
-                    encrypted_payload = base64.standard_b64encode(self.myresult[:])
+                    encrypted_payload = base64.standard_b64encode(\
+                                        self.myresult[:])
 
                 resultlist.append(("encrypted_payload", encrypted_payload))
 
@@ -366,31 +410,35 @@ class SSHField(XByteField):
                                     pkt.underlayer.underlayer.fields["dst"],
                                     pkt.underlayer.fields["sport"],
                                     pkt.underlayer.fields["dport"]):
-                    mac = base64.standard_b64encode(self.get_ascii(self.myresult[\
-                          get_mac_length(pkt.underlayer.underlayer.fields["src"],
-                                       pkt.underlayer.underlayer.fields["dst"],
-                                       pkt.underlayer.fields["sport"],
-                                       pkt.underlayer.fields["dport"]) * 2:]))
+                    mac = base64.standard_b64encode(\
+                    self.get_ascii(self.myresult[\
+                    get_mac_length(pkt.underlayer.underlayer.fields["src"],\
+                                    pkt.underlayer.underlayer.fields["dst"],\
+                                    pkt.underlayer.fields["sport"],\
+                                    pkt.underlayer.fields["dport"]) * 2:]))
                     resultlist.append(("mac", mac))
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
+            if not is_encrypted_session(\
+                                    pkt.underlayer.underlayer.fields["src"],\
+                                      pkt.underlayer.underlayer.fields["dst"],\
+                                      pkt.underlayer.fields["sport"],\
                                       pkt.underlayer.fields["dport"]) and\
                                        opcode.startswith("SSH_MSG_KEXDH_INIT"):
                 try:
                     e_length = int(self.myresult[12:20], 16)
-                    e = base64.standard_b64encode(self.get_ascii(self.myresult[20:20 + e_length * 2]))
+                    e = base64.standard_b64encode(\
+                        self.get_ascii(self.myresult[20:20 + e_length * 2]))
                     resultlist.append(("e_length", str(e_length)))
                     resultlist.append(("e", e))
                     self.found = True
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"]) and\
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"]) and\
                                   opcode.startswith("SSH_MSG_KEXDH_REPLY"):
                 try:
                     server_public_host_key_and_certificates_K_S_length =\
@@ -402,7 +450,8 @@ class SSHField(XByteField):
                         server_public_host_key_and_certificates_K_S_length\
                  * 2:20 + server_public_host_key_and_certificates_K_S_length\
                                  * 2 + 8], 16)
-                    f = base64.standard_b64encode(self.get_ascii(self.myresult[20 +\
+                    f = base64.standard_b64encode(\
+                        self.get_ascii(self.myresult[20 +\
                     server_public_host_key_and_certificates_K_S_length\
         * 2 + 8:20 + server_public_host_key_and_certificates_K_S_length\
                      * 2 + 8 + f_length * 2]))
@@ -417,25 +466,30 @@ class SSHField(XByteField):
                        server_public_host_key_and_certificates_K_S_length\
                         * 2 + 8 + f_length * 2 + 8 +\
                          signature_of_h_length * 2]
-                    resultlist.append(("server_public_host_key_and_certificates_K_S_length",
+                    resultlist.append(\
+            ("server_public_host_key_and_certificates_K_S_length",\
                      str(server_public_host_key_and_certificates_K_S_length)))
-                    resultlist.append(("server_public_host_key_and_certificates_K_S",
-            base64.standard_b64encode(self.get_ascii(server_public_host_key_and_certificates_K_S))))
+                    resultlist.append(\
+                    ("server_public_host_key_and_certificates_K_S",\
+            base64.standard_b64encode(\
+                self.get_ascii(server_public_host_key_and_certificates_K_S))))
                     resultlist.append(("f_length", str(f_length)))
                     resultlist.append(("f", f))
                     resultlist.append(("signature_of_h_length",
                      str(signature_of_h_length)))
                     resultlist.append(("signature_of_h",
-                     base64.standard_b64encode(self.get_ascii(signature_of_h))))
+                     base64.standard_b64encode(\
+                    self.get_ascii(signature_of_h))))
                     self.found = True
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_SERVICE_REQUEST"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_SERVICE_REQUEST"):
                 try:
                     service_name_length = int(self.myresult[12:20], 16)
                     service_name = self.myresult[20:20 \
@@ -448,11 +502,12 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_SERVICE_ACCEPT"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_SERVICE_ACCEPT"):
                 try:
                     service_name_length = int(self.myresult[12:20], 16)
                     service_name = self.myresult[20:20 +\
@@ -465,11 +520,12 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_NEWKEYS"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_NEWKEYS"):
                 try:
                     set_as_encrypted(pkt.underlayer.underlayer.fields["src"],
                                    pkt.underlayer.underlayer.fields["dst"],
@@ -479,11 +535,12 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                 and opcode.startswith("SSH_MSG_DISCONNECT"):
+            if not is_encrypted_session(\
+                    pkt.underlayer.underlayer.fields["src"],\
+                    pkt.underlayer.underlayer.fields["dst"],\
+                    pkt.underlayer.fields["sport"],\
+                    pkt.underlayer.fields["dport"])\
+                    and opcode.startswith("SSH_MSG_DISCONNECT"):
                 try:
                     reason_code = self.get_discnct_msg(int(\
                     self.myresult[12:20], 16)) * 2
@@ -510,25 +567,28 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_IGNORE"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_IGNORE"):
                 try:
                     data_length = int(self.myresult[12:20], 16)
                     data = self.myresult[20:20 + data_length * 2]
                     resultlist.append(("data_length", str(data_length)))
-                    resultlist.append(("data", base64.standard_b64encode(self.get_ascii(data))))
+                    resultlist.append(\
+                    ("data", base64.standard_b64encode(self.get_ascii(data))))
                     self.found = True
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_USERAUTH_PK_OK"):
+            if not is_encrypted_session(\
+            pkt.underlayer.underlayer.fields["src"],\
+            pkt.underlayer.underlayer.fields["dst"],\
+            pkt.underlayer.fields["sport"],\
+            pkt.underlayer.fields["dport"])\
+            and opcode.startswith("SSH_MSG_USERAUTH_PK_OK"):
                 try:
                     public_key_algorithm_name_from_the_request_length =\
                      int(self.myresult[12:20], 16)
@@ -547,10 +607,12 @@ class SSHField(XByteField):
                     resultlist.append((\
                     "public_key_algorithm_name_from_the_request_length",
                      str(public_key_algorithm_name_from_the_request_length)))
-                    resultlist.append(("public_key_algorithm_name_from_the_request",
+                    resultlist.append(\
+                    ("public_key_algorithm_name_from_the_request",\
                      self.get_ascii(\
                     public_key_algorithm_name_from_the_request)))
-                    resultlist.append(("public_key_blob_from_the_request_length",
+                    resultlist.append(\
+                    ("public_key_blob_from_the_request_length",
                      str(public_key_blob_from_the_request_length)))
                     resultlist.append(("public_key_blob_from_the_request",
                      self.get_ascii(public_key_blob_from_the_request)))
@@ -558,11 +620,12 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_DEBUG"):
+            if not is_encrypted_session(\
+            pkt.underlayer.underlayer.fields["src"],\
+            pkt.underlayer.underlayer.fields["dst"],\
+            pkt.underlayer.fields["sport"],\
+            pkt.underlayer.fields["dport"])\
+            and opcode.startswith("SSH_MSG_DEBUG"):
                 try:
                     always_display_boolean = int(self.myresult[12:14], 16)
                     description_length = int(self.myresult[14:22], 16)
@@ -588,39 +651,44 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                          and opcode.startswith("SSH_MSG_UNIMPLEMENTED"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_UNIMPLEMENTED"):
                 try:
                     seqn = int(self.myresult[12:20], 16)
-                    resultlist.append(("packet sequence number of rejected message", seqn))
+                    resultlist.append(\
+                    ("packet sequence number of rejected message", seqn))
                     self.found = True
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_CHANNEL_DATA"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_CHANNEL_DATA"):
                 try:
                     recipient_channel = int(self.myresult[12:20], 16)
                     data_length = int(self.myresult[20:28], 16)
                     data = self.myresult[28:28 + data_length * 2]
                     resultlist.append(("recipient_channel", recipient_channel))
                     resultlist.append(("data_length", str(data_length)))
-                    resultlist.append(("data", base64.standard_b64encode(self.get_ascii(data))))
+                    resultlist.append(\
+                    ("data", base64.standard_b64encode(self.get_ascii(data))))
                     self.found = True
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
-                                      pkt.underlayer.fields["dport"])\
-                                       and opcode.startswith("SSH_MSG_USERAUTH_REQUEST"):
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+                pkt.underlayer.underlayer.fields["dst"],\
+                pkt.underlayer.fields["sport"],\
+                pkt.underlayer.fields["dport"])\
+                and opcode.startswith("SSH_MSG_USERAUTH_REQUEST"):
                 try:
                     user_name_length = int(self.myresult[12:20], 16)
                     user_name = self.myresult[20:20 + user_name_length * 2]
@@ -887,17 +955,20 @@ class SSHField(XByteField):
                         str(public_key_algorithm_for_host_key_length)))
                         resultlist.append(("public_key_algorithm_for_host_key",
                         self.get_ascii(public_key_algorithm_for_host_key)))
-                        resultlist.append(("public_host_key_and_certificates_for_client_host_length",
+                        resultlist.append(\
+                    ("public_host_key_and_certificates_for_client_host_length",
                          str(\
                     public_host_key_and_cert_for_client_host_len)))
-                        resultlist.append(("public_host_key_and_certificates_for_client_host",
+                        resultlist.append(\
+                        ("public_host_key_and_certificates_for_client_host",
                          self.get_ascii(\
                         public_host_key_and_certificates_for_client_host)))
                         resultlist.append(("client_host_name_length",
                          str(client_host_name_length)))
                         resultlist.append(("client_host_name",
                          self.get_ascii(client_host_name)))
-                        resultlist.append(("user_name_on_the_client_host_length",
+                        resultlist.append(\
+                        ("user_name_on_the_client_host_length",\
                          str(user_name_on_the_client_host_length)))
                         resultlist.append(("user_name_on_the_client_host",
                          self.get_ascii(user_name_on_the_client_host)))
@@ -923,9 +994,10 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
+            if not is_encrypted_session(\
+                        pkt.underlayer.underlayer.fields["src"],\
+                                      pkt.underlayer.underlayer.fields["dst"],\
+                                      pkt.underlayer.fields["sport"],\
                                       pkt.underlayer.fields["dport"])\
                  and opcode.startswith("SSH_MSG_USERAUTH_FAILURE"):
                 try:
@@ -936,7 +1008,8 @@ class SSHField(XByteField):
                     partial_success_boolean = int(self.myresult[20 +\
      authentications_that_can_continue_length * 2:20 +\
       authentications_that_can_continue_length * 2 + 8], 16)
-                    resultlist.append(("authentications_that_can_continue_length",
+                    resultlist.append(\
+                ("authentications_that_can_continue_length",
                      str(authentications_that_can_continue_length)))
                     resultlist.append(("authentications_that_can_continue",
                      authentications_that_can_continue))
@@ -946,9 +1019,10 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-      pkt.underlayer.underlayer.fields["dst"],
-      pkt.underlayer.fields["sport"],
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],\
+      pkt.underlayer.underlayer.fields["dst"],\
+      pkt.underlayer.fields["sport"],\
       pkt.underlayer.fields["dport"])\
        and opcode.startswith("SSH_MSG_USERAUTH_BANNER"):
                 try:
@@ -968,7 +1042,8 @@ class SSHField(XByteField):
                 except Exception:
                     self.found = False
 
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
+            if not is_encrypted_session(\
+                pkt.underlayer.underlayer.fields["src"],
                     pkt.underlayer.underlayer.fields["dst"],
                     pkt.underlayer.fields["sport"],
                     pkt.underlayer.fields["dport"])\
@@ -1301,25 +1376,49 @@ class SSHField(XByteField):
                         i = i + 1
 
                     resultlist.append(("cookie", cookie))
-                    resultlist.append(("kex_algorithms_length", str(kex_algorithms_length)))
+                    resultlist.append(\
+                    ("kex_algorithms_length", str(kex_algorithms_length)))
                     resultlist.append(("kex_algorithms", kex_algorithms))
-                    resultlist.append(("server_host_key_algorithms_length", str(server_host_key_algorithms_length)))
-                    resultlist.append(("server_host_key_algorithms", server_host_key_algorithms))
-                    resultlist.append(("encryption_algorithms_client_to_server_length", str(encryption_algorithms_client_to_server_length)))
-                    resultlist.append(("encryption_algorithms_client_to_server", encryption_algorithms_client_to_server))
-                    resultlist.append(("encryption_algorithms_server_to_client_length", str(encryption_algorithms_server_to_client_length)))
-                    resultlist.append(("encryption_algorithms_server_to_client", encryption_algorithms_server_to_client))
-                    resultlist.append(("mac_algorithms_client_to_server_length", str(mac_algorithms_client_to_server_length)))
-                    resultlist.append(("mac_algorithms_client_to_server", mac_algorithms_client_to_server))
-                    resultlist.append(("mac_algorithms_server_to_client_length", str(mac_algorithms_server_to_client_length)))
+                    resultlist.append(\
+        ("server_host_key_algorithms_length",\
+          str(server_host_key_algorithms_length)))
+                    resultlist.append(\
+        ("server_host_key_algorithms", server_host_key_algorithms))
+                    resultlist.append(\
+("encryption_algorithms_client_to_server_length",\
+ str(encryption_algorithms_client_to_server_length)))
+                    resultlist.append(\
+        ("encryption_algorithms_client_to_server",\
+          encryption_algorithms_client_to_server))
+                    resultlist.append(\
+        ("encryption_algorithms_server_to_client_length",\
+          str(encryption_algorithms_server_to_client_length)))
+                    resultlist.append(\
+    ("encryption_algorithms_server_to_client",\
+      encryption_algorithms_server_to_client))
+                    resultlist.append(\
+        ("mac_algorithms_client_to_server_length",\
+          str(mac_algorithms_client_to_server_length)))
+                    resultlist.append(\
+        ("mac_algorithms_client_to_server",\
+          mac_algorithms_client_to_server))
+                    resultlist.append(\
+        ("mac_algorithms_server_to_client_length",\
+          str(mac_algorithms_server_to_client_length)))
                     resultlist.append(("mac_algorithms_server_to_client",
                      mac_algorithms_server_to_client))
-                    resultlist.append(("compression_algorithms_client_to_server_length", str(\
+                    resultlist.append(\
+            ("compression_algorithms_client_to_server_length", str(\
                     compression_algorithms_client_to_server_length)))
-                    resultlist.append(("compression_algorithms_client_to_server", compression_algorithms_client_to_server))
-                    resultlist.append(("compression_algorithms_server_to_client_length", str(\
+                    resultlist.append(\
+            ("compression_algorithms_client_to_server",\
+              compression_algorithms_client_to_server))
+                    resultlist.append(\
+            ("compression_algorithms_server_to_client_length", str(\
                     compression_algorithms_server_to_client_length)))
-                    resultlist.append(("compression_algorithms_server_to_client", compression_algorithms_server_to_client))
+                    resultlist.append(\
+            ("compression_algorithms_server_to_client",\
+              compression_algorithms_server_to_client))
                     resultlist.append(("languages_client_to_server_length",
                      str(languages_client_to_server_length)))
                     resultlist.append(("languages_client_to_server",
@@ -1341,13 +1440,15 @@ class SSHField(XByteField):
             pkt.underlayer.underlayer.fields["dst"],
             pkt.underlayer.fields["sport"],
             pkt.underlayer.fields["dport"]):
-                payload = base64.standard_b64encode(self.get_ascii(self.myresult[12:payloadl * 2]))
+                payload = base64.standard_b64encode(\
+                self.get_ascii(self.myresult[12:payloadl * 2]))
                 resultlist.append(("payload", payload))
 
             self.found = False
-            if not is_encrypted_session(pkt.underlayer.underlayer.fields["src"],
-                                      pkt.underlayer.underlayer.fields["dst"],
-                                      pkt.underlayer.fields["sport"],
+            if not is_encrypted_session(\
+                            pkt.underlayer.underlayer.fields["src"],\
+                            pkt.underlayer.underlayer.fields["dst"],\
+                                      pkt.underlayer.fields["sport"],\
                                       pkt.underlayer.fields["dport"]):
                 resultlist.append(("padding", padding))
                 if len(self.myresult) > (10 + payloadl * 2 + int(padl) * 2):
