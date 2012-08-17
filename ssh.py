@@ -13,6 +13,14 @@ sessions = []
 
 
 def is_created_stream_session(Src, Dst, SPort, DPort):
+    """
+    this method is used for purpose of tcp stream reassemble,
+    for checking if this is a new session of not.
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    """
     i = 0
     while i < len(preprocess_sessions):
         if  Src == preprocess_sessions[i][0] and\
@@ -25,6 +33,15 @@ def is_created_stream_session(Src, Dst, SPort, DPort):
 
 
 def create_stream_session(Src, Dst, SPort, DPort, stream):
+    """
+    this method is used for purpose of tcp stream reassemble,
+    for creating a new session.
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    @param stream: the initial packet
+    """
     if stream.push:
         sessions.append([Src, Dst, SPort, DPort, stream])
     else:
@@ -32,6 +49,15 @@ def create_stream_session(Src, Dst, SPort, DPort, stream):
 
 
 def build_stream(Src, Dst, SPort, DPort, stream):
+    """
+    this method is used for purpose of tcp stream reassemble,
+    for appending a new packet.
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    @param stream: the current packet
+    """
     i = 0
     while i < len(preprocess_sessions):
         if  Src == preprocess_sessions[i][0] and\
@@ -52,6 +78,15 @@ def build_stream(Src, Dst, SPort, DPort, stream):
 
 
 def get_stream(Src, Dst, SPort, DPort, obj):
+    """
+    this method is used for purpose of tcp stream reassemble,
+    for retrieving a stream or packet.
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    @param obj: last packet to be appended
+    """
     i = 0
     while i < len(sessions):
         if Src == sessions[i][0] and Dst == sessions[i][1] and\
@@ -63,6 +98,15 @@ def get_stream(Src, Dst, SPort, DPort, obj):
 
 
 def is_stream_end(Src, Dst, SPort, DPort, obj):
+    """
+    this method is used for purpose of tcp stream reassemble,
+    for checking whether if this is the last packet in the stream or not.
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    @param obj: last packet in stream.
+    """
     i = 0
     while i < len(sessions):
         if  Src == sessions[i][0] and Dst == sessions[i][1] and\
@@ -74,6 +118,9 @@ def is_stream_end(Src, Dst, SPort, DPort, obj):
 
 
 class Stream:
+    """
+    this class is for tcp reassembling
+    """
     pkt = ""
     seq = -1
     push = None
@@ -81,6 +128,13 @@ class Stream:
     stream = False
 
     def __init__(self, pkt, push, seq):
+        """
+        this constructor is used for purpose of tcp stream reassemble,
+        for initializing tcp packets.
+        @param pkt: packet payload
+        @param push: specify if push flag is true or false
+        @param seq: sequence number
+        """
         self.stream = False
         self.pkt = pkt
         self.push = push
@@ -88,6 +142,15 @@ class Stream:
         self.length_of_last_packet = len(pkt)
 
     def append_data(self, Src, Dst, SPort, DPort, obj):
+        """
+        this method is used for purpose of tcp stream reassemble,
+        for appending a packet to an existing stream.
+        @param Src: source ip address
+        @param Dst: destination ip address
+        @param SPort: source port number
+        @param DPort: destination port number
+        @param obj: last packet in stream.
+        """
         if self.seq + self.length_of_last_packet == obj.seq and obj.push:
             self.stream = True
             self.append_packet(obj.pkt)
@@ -101,15 +164,27 @@ class Stream:
         return self
 
     def append_packet(self, pkt):
+        """
+        this method is used for purpose of tcp stream reassemble,
+        for appending a packet payload to an existing stream.
+        @param pkt: packet payload.
+        """
         self.pkt = self.pkt + pkt
 
     def change_seq(self, seq):
+        """
+        this method is used for purpose of tcp stream reassemble,
+        for the last packet sequence in the stream.
+        @param seq: sequence number.
+        """
         self.seq = seq
 
 
 def int2bin(n, count=16):
     """
-    returns the binary of integer n, using count number of digits
+    this method converts integer numbers to binary numbers
+    @param n: the number to be converted
+    @param count: the number of binary digits
     """
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
 

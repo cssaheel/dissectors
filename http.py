@@ -13,10 +13,22 @@ downloaded_files = []
 
 
 def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
+    """
+    this method is for generating a randndom name for the downloaded files
+    @param size: number of random characters
+    @param chars: type of the random characters
+    """
     return ''.join(random.choice(chars) for x in range(size))
 
 
 def clean_file_name(name, path):
+    """
+    this method is for cleaning the carved file name if it has some special chars
+    which is not allowed in most of the operating systems or if the specified folder
+    in path variable has another file has the same name.
+    @param name: the carved file name
+    @param path: the directory path
+    """
     ls = list(name)
     result = ""
     length = len(ls)
@@ -37,23 +49,33 @@ def clean_file_name(name, path):
 
 
 def add_file(Src, Dst, SPort, DPort, name, seq):
+    """
+    this method is for storing the carved file name.
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    @param name: the carved file name
+    @param seq: sequence number
+    """
     downloaded_files.append((Src, Dst, SPort, DPort, name[1:], seq))
 
 
 def get_file(Src, Dst, SPort, DPort, ack):
+    """
+    this method is for retrieving the stored file name
+    @param Src: source ip address
+    @param Dst: destination ip address
+    @param SPort: source port number
+    @param DPort: destination port number
+    @param ack: acknowledgment number
+    """
     for element in downloaded_files:
         if  Src == element[1] and Dst == element[0] and\
          SPort == element[3] and DPort == element[2] and\
           ack == element[5]:
             return element[4]
     return "NoName"
-
-
-def int2bin(n, count=16):
-    """
-    returns the binary of integer n, using count number of digits
-    """
-    return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
 
 
 class HTTPReqField(StrField):

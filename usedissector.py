@@ -13,10 +13,10 @@ dissector = Dissector()
 #dissector.change_dfolder("/root/Desktop/aaa")
 
 # sending the pcap file to be dissected
-pkts = dissector.dissect_pkts("/root/Desktop/smtp.pcap")
+pkts = dissector.dissect_pkts("/root/Desktop/ssh.cap")
 
 print(pkts)
 
-f = open("/root/Desktop/smtp.txt", "w")
-print(pkts["smtp"])
+f = open("/root/Desktop/ssh.txt", "w")
+print(pkts["ssh"])
 f.write(json.dumps(pkts, indent=4))

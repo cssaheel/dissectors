@@ -13,10 +13,22 @@ last_file = "NoName"
 
 
 def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
+    """
+    this method is for generating a randndom name for the downloaded files
+    @param size: number of random characters
+    @param chars: type of the random characters
+    """
     return ''.join(random.choice(chars) for x in range(size))
 
 
 def clean_file_name(name, path):
+    """
+    this method is for cleaning the carved file name if it has some special chars
+    which is not allowed in most of the operating systems or if the specified folder
+    in path variable has another file has the same name.
+    @param name: the carved file name
+    @param path: the directory path
+    """
     ls = list(name)
     result = ""
     length = len(ls)
@@ -37,6 +49,10 @@ def clean_file_name(name, path):
 
 
 def add_file(name):
+    """
+    this method is for storing the carved file name.
+    @param name: the carved file name
+    """
     global last_file
     ls = []
     if "/" in name:
@@ -46,6 +62,9 @@ def add_file(name):
 
 
 def get_file():
+    """
+    this method is for retrieving the stored file name
+    """
     return last_file
 
 # list for maintaining  the ftp data sessions

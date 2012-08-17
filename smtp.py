@@ -11,6 +11,11 @@ import dissector
 
 
 def name_generator(size=9, chars=string.ascii_uppercase + string.digits):
+    """
+    this method is for generating a randndom name for the downloaded files
+    @param size: number of random characters
+    @param chars: type of the random characters
+    """
     return ''.join(random.choice(chars) for x in range(size))
 
 
@@ -25,10 +30,21 @@ bounded = []
 
 
 def get_tcp_ip():
+    """
+    this method is for retrieving the ip and tcp values
+    """
     return src, dst, sport, dport, seq
 
 
 def set_tcp_ip(srcp, dstp, sportp, dportp, seqp):
+    """
+    this method is for set values in the global variables for tcp/ip
+    @param srcp: source ip address
+    @param dstp: destination ip address
+    @param sportp: source port number
+    @param dPortp: destination port number
+    @param seqp: sequence number
+    """
     global src, dst, sport, dport, seq
     src = srcp
     dst = dstp
