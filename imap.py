@@ -94,9 +94,3 @@ class IMAPReq(Packet):
 
 bind_layers(TCP, IMAPReq, dport=143)
 bind_layers(TCP, IMAPRes, sport=143)
-"""
-pkts = rdpcap("/root/Desktop/imap.cap")
-
-for pkt in pkts:
-    pkt.show()
-"""

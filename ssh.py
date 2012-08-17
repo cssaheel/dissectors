@@ -51,7 +51,6 @@ def is_stream_end(Src, Dst, SPort, DPort, obj):
     while i < len(sessions):
         if  Src == sessions[i][0] and Dst == sessions[i][1] and SPort == sessions[i][2] and DPort == sessions[i][3]:
             if sessions[i][4].seq == obj.seq:
-                # and dissector.Dissector.sessions[i][4].stream:
                 return True
         i = i + 1
     return False
@@ -91,7 +90,9 @@ class Stream:
 
     
 def int2bin(n, count=16):
-    """returns the binary of integer n, using count number of digits"""
+    """
+    returns the binary of integer n, using count number of digits
+    """
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
 
 # holds ssh encrypted sessions
@@ -195,22 +196,6 @@ class SSHField(XByteField):
         """
         return binascii.unhexlify(hexstr)
 
-    def hex_it(self, s):
-        """
-        get ascii chars and returns hex string
-        @param s: ascii chars
-        """
-        for c in s:
-            ustruct = struct.unpack(self.fmt, c)
-            
-            byte = str(hex(ustruct[0]))[2:]
-            if len(byte) == 1:
-                byte = "0" + byte
-            
-            #byte = base64.standard_b64encode(str(ustruct[0]))
-            self.myres = self.myres + byte
-        return s
-
     def __init__(self, name, default):
         """
         class constructor, for initializing instance variables
@@ -300,15 +285,6 @@ class SSHField(XByteField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        '''
-        cstream = -1
-        if pkt.underlayer.name == "TCP":
-            cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
-        if len(dissector.Dissector.sessions) <= 0:
-            return "", ""
-        if not cstream == -1:
-            s = cstream
-        '''
         ss = -1
         flags = None
         seq = pkt.underlayer.fields["seq"]
@@ -1384,7 +1360,7 @@ class SSHField(XByteField):
                 else:
                     result_str = result_str + ", " + item[0] + ": " + item[1]
             return "", result_str
-        return "", "lol"
+        return "", ""
 
 
 class SSH(Packet):
@@ -1397,11 +1373,3 @@ class SSH(Packet):
 
 bind_layers(TCP, SSH, dport=22)
 bind_layers(TCP, SSH, sport=22)
-
-"""
-pkts = rdpcap("/root/Desktop/ssh.cap")
-i = 0
-while i < len(pkts):
-    print(pkts[i].show())
-    i = i + 1
-"""

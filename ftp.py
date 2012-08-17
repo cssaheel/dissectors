@@ -133,11 +133,6 @@ class FTPDataField(XByteField):
         for c in s:
             ustruct = struct.unpack(self.fmt, c)
             byte = base64.standard_b64encode(str(ustruct[0]))
-            '''
-            byte = str(hex(ustruct[0]))[2:]
-            if len(byte) == 1:
-                byte = "0" + byte
-            '''
             self.myresult = self.myresult + byte
         if not is_created_session(pkt.underlayer.underlayer.fields["src"],
                                 pkt.underlayer.underlayer.fields["dst"],
@@ -389,9 +384,3 @@ bind_layers(TCP, FTPResponse, sport=21)
 bind_layers(TCP, FTPRequest, dport=21)
 bind_layers(TCP, FTPData, dport=20)
 bind_layers(TCP, FTPData, dport=20)
-"""
-pkts = rdpcap("/root/Desktop/ftp.cap")
-
-for pkt in pkts:
-    pkt.show()
-"""

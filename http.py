@@ -45,7 +45,9 @@ def get_file(Src, Dst, SPort, DPort, ack):
     return "NoName"
 
 def int2bin(n, count=16):
-    """returns the binary of integer n, using count number of digits"""
+    """
+    returns the binary of integer n, using count number of digits
+    """
     return "".join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
 
 class HTTPReqField(StrField):
@@ -257,17 +259,9 @@ class HTTPMsgField(XByteField):
             f.write(s)
             f.close()
         self.myresult = ""
-        firstb = struct.unpack(self.fmt, s[0])[0]
-        self.myresult = ""
         for c in s:
-            ustruct = struct.unpack(self.fmt, c)
-            # byte = base64.standard_b64encode(str(ustruct[0]))
-            
-            byte = str(hex(ustruct[0]))[2:]
-            if len(byte) == 1:
-                byte = "0" + byte
-            
             self.myresult = self.myresult + base64.standard_b64encode(c)
+
         if self.myresult[-1:] == " ":
             self.myresult = self.myresult.rstrip()
         return "",  self.myresult
@@ -291,8 +285,6 @@ class HTTPField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        if self.name == "bridge":
-            return s, ""
         if self.name == "unknown-header(s): ":
             remain = ""
             value = []
@@ -449,9 +441,3 @@ class HTTPResponse(Packet):
 
 bind_layers(TCP, HTTPResponse, sport=80)
 bind_layers(TCP, HTTPRequest, dport=80)
-
-"""
-pkts = rdpcap("/root/Desktop/http.cap")
-for pkt in pkts:
-    pkt.show()
-"""

@@ -107,17 +107,8 @@ class SIPMsgField(StrField):
             if s == "":
                 return "", ""
         self.myresult = ""
-        firstb = struct.unpack(self.fmt, s[0])[0]
-        self.myresult = ""
         for c in s:
-            ustruct = struct.unpack(self.fmt, c)
-            byte = base64.standard_b64encode(c)
-            '''
-            byte = str(hex(ustruct[0]))[2:]
-            if len(byte) == 1:
-                byte = "0" + byte
-            '''
-            self.myresult = self.myresult + byte
+            self.myresult = self.myresult + base64.standard_b64encode(c)
         return "", self.myresult
 
 
@@ -292,9 +283,3 @@ bind_layers(TCP, SIP, sport=5060)
 bind_layers(TCP, SIP, dport=5060)
 bind_layers(UDP, SIP, sport=5060)
 bind_layers(UDP, SIP, dport=5060)
-
-"""
-pkts = rdpcap("/root/Desktop/sip.pcap")
-for pkt in pkts:
-    pkt.show()
-"""

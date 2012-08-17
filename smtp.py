@@ -117,16 +117,7 @@ class SMTPDataField(XByteField):
         f.write(s)
         f.close()
         self.myresult = ""
-        firstb = struct.unpack(self.fmt, s[0])[0]
-        self.myresult = ""
         for c in s:
-            ustruct = struct.unpack(self.fmt, c)
-            byte = base64.standard_b64encode(str(ustruct[0]))
-            '''
-            byte = str(hex(ustruct[0]))[2:]
-            if len(byte) == 1:
-                byte = "0" + byte
-            '''
             self.myresult = self.myresult + base64.standard_b64encode(c)
         return "", self.myresult
 
@@ -207,13 +198,11 @@ class SMTPResField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        '''
         cstream = -1
         if pkt.underlayer.name == "TCP":
             cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
-        '''
         remain = ""
         value = ""
         ls = s.splitlines()
@@ -283,13 +272,11 @@ class SMTPReqField(StrField):
         @param pkt: holds the whole packet
         @param s: holds only the remaining data which is not dissected yet.
         """
-        '''
         cstream = -1
         if pkt.underlayer.name == "TCP":
             cstream = dissector.check_stream(pkt.underlayer.underlayer.fields["src"], pkt.underlayer.underlayer.fields["dst"], pkt.underlayer.fields["sport"], pkt.underlayer.fields["dport"], pkt.underlayer.fields["seq"], s)
         if not cstream == -1:
             s = cstream
-        '''
         remain = ""
         value = ""
         ls = s.split()
@@ -348,15 +335,6 @@ class SMTPData(Packet):
     @attention: this class inherets Packet
     """
 
-    '''
-    def __init__(self, src, dst, sport, dport, seq, s):
-        self.src = src
-        self.dst = dst
-        self.sport = sport
-        self.dport = dport
-        self.seq = seq
-        self.s = s
-    '''
     name = "smtp"
     fields_desc = [SMTPDataField("data", "")]
 
@@ -384,9 +362,3 @@ bind_layers(TCP, SMTPResponse, sport=25)
 bind_layers(TCP, SMTPRequest, dport=25)
 bind_layers(TCP, SMTPResponse, sport=587)
 bind_layers(TCP, SMTPRequest, dport=587)
-
-"""
-pkts = rdpcap("/root/Desktop/smtp.pcap")
-for pkt in pkts:
-    pkt.show()
-"""

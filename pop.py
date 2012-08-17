@@ -94,9 +94,3 @@ class POPReq(Packet):
 
 bind_layers(TCP, POPReq, dport=110)
 bind_layers(TCP, POPRes, sport=110)
-"""
-pkts = rdpcap("/root/Desktop/pop.pcap")
-
-for pkt in pkts:
-    pkt.show()
-"""

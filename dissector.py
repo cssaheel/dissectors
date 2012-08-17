@@ -1,4 +1,4 @@
-import json
+import json # json formatting module
 import binascii # this class to handle the hex/ascii converting
 from scapy.all import Packet, rdpcap, ConditionalField, Emph, conf
 '''
@@ -91,7 +91,6 @@ def is_stream_end(Src, Dst, SPort, DPort, obj):
     while i < len(dissector.Dissector.sessions):
         if  Src == dissector.Dissector.sessions[i][0] and Dst == dissector.Dissector.sessions[i][1] and SPort == dissector.Dissector.sessions[i][2] and DPort == dissector.Dissector.sessions[i][3]:
             if dissector.Dissector.sessions[i][4].seq == obj.seq:
-                # and dissector.Dissector.sessions[i][4].stream:
                 return True
         i = i + 1
     return False
@@ -194,18 +193,6 @@ class Dissector(Packet):
             return value[:-1]
         else:
             return value
-    def hex_it(self, s):
-        """
-        get ascii chars and returns hex string
-        @param s: ascii chars
-        """
-        for c in s:
-            ustruct = struct.unpack(self.fmt, c)
-            byte = str(hex(ustruct[0]))[2:]
-            if len(byte) == 1:
-                byte = "0" + byte
-            self.myres = self.myres + byte
-        return s
 
     def dissect(self, packet):
         """
@@ -242,7 +229,6 @@ class Dissector(Packet):
             if fld is not None:
                 return fld.i2h(self, v)
             return v
-        # raise AttributeError(attr)
         
     def seq_analysis(self, pcapfile):
         """
@@ -258,7 +244,6 @@ class Dissector(Packet):
         for pkt in packetslist:
             firstlayer = True
             if pkt:
-                # pktsfields.append("NewPacket")
                 if firstlayer:
                     firstlayer = False
                     self.packet = pkt
@@ -284,7 +269,6 @@ class Dissector(Packet):
         """
         self.seq_analysis(pcapfile)
         Dissector.sessions = Dissector.preprocess_sessions
-        #self.recalculate_seq()
         Dissector.preprocess_sessions = []
         Dissector.preprocess_done = True
         packetslist = rdpcap(pcapfile)
@@ -295,7 +279,6 @@ class Dissector(Packet):
         for pkt in packetslist:
             firstlayer = True
             if pkt:
-                # pktsfields.append("NewPacket")
                 if firstlayer:
                     firstlayer = False
                     self.packet = pkt
@@ -307,7 +290,6 @@ class Dissector(Packet):
                         if self.is_printable(fields[j]):
                             entry[fields[j][0]] = fields[j][1]
                         j = j + 1
-                    # pktsfields.append(fields)
                     
                     i = 0
                     while i < len(protocols):
@@ -331,15 +313,11 @@ class Dissector(Packet):
                     
                     fields = self.dissect(self.packet)
 
-                    
-                    
                     entry = {}
-                    # pktsfields.append(fields)
                     if fields[0]:
                         if fields[0] == "NoPayload":
                             break
-                        
-# pkt.underlayer.underlayer.fields["src"]
+
                     j = 1
                     first = True
                     if not recognized:
@@ -372,7 +350,6 @@ class Dissector(Packet):
                                     for element in fields:
                                         if "qd" in element:
                                             qdfield = element[1]
-                                            #break
                                     if qdfield.count("|") == 1:
                                         line = qdfield.split()
                                         for t in line:
@@ -401,12 +378,12 @@ class Dissector(Packet):
                                             if found:
                                                 entry.append({"name": name, "type": type})
                                                 found = False
-                                            
+
                                 if load.fields["an"] :
                                     for element in fields:
                                         if "an" in element:
                                             anfield = element[1]
-                                            #break
+
                                     if anfield.count("|") == 1:
                                         line = anfield.split()
                                         for t in line:
@@ -469,7 +446,7 @@ class Dissector(Packet):
                             fields[0].startswith("smtp"):
                                 recognized = True
                                 if fields[j][0].startswith("command") and fields[j][1].startswith("['DATA', '") and fields[j][1].endswith("']"):
-                                    #result = self.clean_out(fields[j][1][1:-1])
+
                                     entry["data"] = fields[j][1][10:-2]
                                     entry["type"] = "data"
                                 elif fields[j][0].startswith("response") and fields[j][0].endswith("response"):
@@ -509,19 +486,7 @@ class Dissector(Packet):
                                             entry = entry + fields[j][0] + ": " + fields[j][1][1:-1]
                                         if j == len(fields) - 1:
                                             entry = entry + ", type: request"
-                                '''
-                                elif fields[j][0].startswith("command") and fields[j][0].endswith("command"):
-                                    #result = self.clean_out(fields[j][1][1:-1])
-                                    entry[fields[j][0]] = fields[j][1][1:-1]
-                                elif fields[j][0].startswith("argument") and fields[j][0].endswith("argument"):
-                                    #result = self.clean_out(fields[j][1][1:-1])
-                                    entry[fields[j][0]] = fields[j][1][1:-1]
-                                else:
-                                    ss = fields[j][1]
-                                    entry[fields[j][0]] = ss
-                                    ss = self.clean_out(self.clean_out(fields[j][1]))
-                                '''
-                                
+
                             if isinstance(fields[0], str) and\
                             fields[0].startswith("ftp"):
                                 recognized = True
@@ -535,8 +500,6 @@ class Dissector(Packet):
                                     entry = entry + ", type: response"
                                 elif j == len(fields) - 1 and pkt.payload.payload.fields["dport"] == 21 or pkt.payload.payload.fields["dport"] == 20:
                                     entry = entry + ", type: request"
-                                #elif j == len(fields) - 1 and not pkt.payload.payload.fields["dport"] == 21 and not pkt.payload.payload.fields["dport"] == 20 and not pkt.payload.payload.fields["sport"] == 21 and not pkt.payload.payload.fields["sport"] == 20:
-                                    #entry = entry + ", type: data"
                             if isinstance(fields[0], str) and\
 							fields[0].startswith("imap"):
                                 recognized = True
@@ -586,7 +549,6 @@ class Dissector(Packet):
                         protocols.append([fields[0].lower()])
                         if len(entry) > 0:
                             protocols[0].append(entry)
-                
 
         dproto = {}
         i = 0
@@ -594,5 +556,5 @@ class Dissector(Packet):
             if self.defined_protocol(proto[0].lower()):
                 
                 dproto[proto[0].lower()] = proto[1:]
-        
+
         return dproto

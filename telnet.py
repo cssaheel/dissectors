@@ -78,14 +78,7 @@ class TELNETField(XByteField):
         if firstb != 255:
             self.myresult = ""
             for c in s:
-                ustruct = struct.unpack(self.fmt, c)
-                byte = base64.standard_b64encode(c)
-                '''
-                byte = str(hex(ustruct[0]))[2:]
-                if len(byte) == 1:
-                    byte = "0" + byte
-                '''
-                self.myresult = self.myresult + byte
+                self.myresult = self.myresult + base64.standard_b64encode(c)
             return  "", "data " + self.myresult
 
         for c in s:

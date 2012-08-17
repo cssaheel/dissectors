@@ -161,9 +161,3 @@ bind_layers(TCP, IRCRes, sport=6667)
 bind_layers(TCP, IRCRes, sport=6668)
 bind_layers(TCP, IRCRes, sport=6669)
 bind_layers(TCP, IRCRes, sport=7000)
-
-"""
-pkts = rdpcap("/root/Desktop/irc.cap")
-for pkt in pkts:
-    pkt.show()
-"""
