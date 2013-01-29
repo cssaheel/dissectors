@@ -116,7 +116,10 @@ class HTTPReqField(StrField):
             if length == 3:
                 value = "Method:" + f[0] + ", Request-URI:" +\
                         f[1] + ", HTTP-Version:" + f[2]
-                if f[0].lower() == "get" or f[0].lower() == "post":
+                HTTPMethodsRFC2616 = ['get','post','options','head','put','delete','trace','connect'] 
+                #HTTP methods as per rfc2616 http://www.ietf.org/rfc/rfc2616
+                #There are other methods in other RFCs but nobody cares about those.
+                if f[0].lower() in HTTPMethodsRFC2616:
                     add_file(pkt.underlayer.underlayer.fields["src"],\
                               pkt.underlayer.underlayer.fields["dst"],\
                                pkt.underlayer.fields["sport"],\
@@ -389,15 +392,18 @@ class HTTPRequest(Packet):
                      HTTPField("trailer: ", "", "H"),
                     HTTPField("transfer-encoding: ", "", "H"),
                      HTTPField("upgrade: ", "", "H"),
+                     HTTPField("dnt: ", "", "H"),
+                     HTTPField("x-requested-with: ", "", "H"),
                     HTTPField("via: ", "", "H"),
                      HTTPField("Warning: ", "", "H"),
                     HTTPField("accept: ", "", "H"),
                      HTTPField("accept-encoding: ", "", "H"),
                     HTTPField("accept-language: ", "", "H"),
+                    HTTPField("content-length: ", "", "H"),
                      HTTPField("accept-charset: ", "", "H"),
                     HTTPField("expect: ", "", "H"),
                      HTTPField("authorization: ", "", "H"),
-                    HTTPField("accept-encoding: ", "", "H"),
+                    HTTPField("accept-datetime: ", "", "H"),
                      HTTPField("from: ", "", "H"),
                     HTTPField("host: ", "", "H"),
                      HTTPField("if-match: ", "", "H"),
@@ -429,11 +435,12 @@ class HTTPResponse(Packet):
     @attention: it inherets Packet from Scapy library
     """
     name = "http"
-    fields_desc = [HTTPResField("status-line: ", "", "H"),
+    fields_desc = [HTTPResField("status-line: ", "", "H"),#responses123
                     HTTPField("cache-control: ", "", "H"),
                     HTTPField("connection: ", "", "H"),
                      HTTPField("date: ", "", "H"),
                     HTTPField("pragma: ", "", "H"),
+                    HTTPField("access-control-allow-origin: ", "", "H"),
                      HTTPField("trailer: ", "", "H"),
                     HTTPField("transfer-encoding: ", "", "H"),
                      HTTPField("upgrade: ", "", "H"),
@@ -451,7 +458,19 @@ class HTTPResponse(Packet):
                      HTTPField("content-encoding: ", "", "H"),
                     HTTPField("content-language: ", "", "H"),
                      HTTPField("content-length: ", "", "H"),
-                    HTTPField("content-location: ", "", "H"),
+                    HTTPField("content-disposition: ", "", "H"),
+                     HTTPField("strict-transport-security: ", "", "H"),
+                    HTTPField("www-authenticate: ", "", "H"),
+                     HTTPField("x-frame-options: ", "", "H"),
+                    HTTPField("x-xss-protection: ", "", "H"),
+                     HTTPField("x-powered-by: ", "", "H"),
+                     HTTPField("content-security-policy: ", "", "H"),
+                     HTTPField("x-content-security-policy: ", "", "H"),
+                     HTTPField("x-webkit-csp: ", "", "H"),
+                     HTTPField("x-ua-compatible: ", "", "H"),
+                     HTTPField("x-content-type-options: ", "", "H"),
+                     HTTPField("x-ua-compatible: ", "", "H"),
+                    HTTPField("refresh: ", "", "H"),
                      HTTPField("content-md5: ", "", "H"),
                     HTTPField("content-range: ", "", "H"),
                      HTTPField("content-type: ", "", "H"),
@@ -467,7 +486,7 @@ class HTTPResponse(Packet):
                      HTTPField("accept-patch: ", "", "H"),
                     HTTPField("cookie: ", "", "H"),
                      HTTPField("set-cookie: ", "", "H"),
-                    HTTPField("x-forwarded-for: ", "", "H"),
+                    #HTTPField("x-forwarded-for: ", "", "H"), X-Forwarded for is not a response header, it's a request
                      HTTPField("keep-alive: ", "", "H"),
                     HTTPField("unknown-header(s): ", "", "H"),
                      HTTPMsgField("message-body: ", "")]
