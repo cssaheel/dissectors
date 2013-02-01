@@ -37,9 +37,7 @@ def clean_file_name(name, path):
         return name_generator()
     i = 0
     while i < length:
-        if not ls[i].isdigit() and not ls[i].isalpha and not ls[i] == "." and not ls[i] == " ":
-            del(ls[i])
-        else:
+        if ls[i].isalnum() or ls[i] == ".":
             result = result + ls[i]
         i = i + 1
     if len(result) > 0:
